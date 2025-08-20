@@ -1,0 +1,8 @@
+{
+    "gasodutos": [
+      {"origem": "Estação A", "destino": "Estação B", "diametro": 24, "comprimento": 100}
+    ],
+    "compressores": [
+      {"local": "Estação B", "potencia": 10}
+    ]
+  }
