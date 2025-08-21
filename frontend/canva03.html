@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digital Twin - Estação de Compressão</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #0b1220;
+      --card: #121a2b;
+      --muted: #92a3c0;
+      --accent: #22d3ee;
+      --accent-2: #60a5fa;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    html,body{height:100%}
+    body{font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";}
+    .glow-border{position: relative; border-radius: 16px; overflow: hidden;}
+    .glow-border::before{
+      content:""; position:absolute; inset:-2px;
+      background: conic-gradient(from 180deg at 50% 50%, var(--accent), transparent 25%, var(--accent-2), transparent 50%, var(--accent), transparent 75%, var(--accent-2));
+      filter: blur(12px) opacity(.4); z-index:0; animation: spin 12s linear infinite;
+    }
+    .glow-border > *{ position:relative; z-index:1}
+    @keyframes spin{to{transform: rotate(360deg)}}
+    .mesh-dot{transition: transform .2s ease, opacity .2s ease;}
+    .mesh-link{transition: opacity .2s ease;}
+    .panel-scroll{ scrollbar-width: thin; scrollbar-color:#3b4a6a transparent;}
+    .panel-scroll::-webkit-scrollbar{height:8px;width:8px}
+    .panel-scroll::-webkit-scrollbar-thumb{background:#33415f;border-radius:999px}
+    .panel-scroll::-webkit-scrollbar-track{background:transparent}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:.25rem .5rem;border-radius:999px;font-size:.7rem}
+  </style>
+</head>
+<body class="min-h-screen bg-[var(--bg)] text-white">
+  <header class="max-w-7xl mx-auto px-6 pt-8">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-200 text-xs tracking-wide">
+          <span>Digital Twin</span>
+          <span class="opacity-60">Estação de Compressão</span>
+        </div>
+        <h1 class="mt-4 text-3xl md:text-4xl font-extrabold leading-tight">
+          Monitoramento e Gestão de Equipamentos
+        </h1>
+        <p class="mt-2 text-[var(--muted)] max-w-2xl">
+          Adicione e remova equipamentos, visualize a topografia da malha e estime o impacto ambiental da operação em tempo real.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="btnExportar" class="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold transition">
+          Exportar Relatório (PDF)
+        </button>
+        <button id="btnPublicar" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 font-semibold transition">
+          Publicar (Demo)
+        </button>
+      </div>
+    </div>
+  </header>
+  <!-- Main -->
+  <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <!-- Coluna esquerda: Formulário -->
+    <section class="xl:col-span-1 bg-[color:var(--card)]/80 border border-white/5 rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">Adicionar Equipamento</h2>
+        <span class="pill text-[color:var(--muted)] text-xs px-2.5 py-1 rounded-full">Campos obrigatórios</span>
+      </div>
+
+      <!-- Tipo -->
+      <label class="block text-sm text-[color:var(--muted)] mb-1">Tipo de equipamento</label>
+      <select id="tipo" class="w-full mb-4 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40">
+        <option value="" disabled selected>Selecione</option>
+        <option>Separador</option>
+        <option>Filtro</option>
+        <option>Compressor</option>
+        <option>Válvula</option>
+        <option>Tubulação</option>
+      </select>
+
+      <!-- Ponto de instalação -->
+      <label class="block text-sm text-[color:var(--muted)] mb-1">Ponto de instalação</label>
+      <input id="pontoInstalacao" placeholder="Ex.: Estágio 1 - Tramo A" class="w-full mb-4 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"/>
+
+      <!-- Composição do gás -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between">
+          <label class="block text-sm text-[color:var(--muted)]">Composição do gás</label>
+          <span class="text-xs text-[color:var(--muted)]">Ex.: CH4=90, C2H6=5, CO2=5</span>
+        </div>
+        <input id="gas" placeholder="Componente=%, separado por vírgulas" class="w-full mt-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"/>
+      </div>
+
+      <!-- Parâmetros dinâmicos -->
+      <div id="parametrosContainer" class="space-y-3"></div>
+
+      <!-- Botões -->
+      <div class="mt-6 flex items-center gap-3">
+        <button id="btnAdicionar" class="glow flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-400 to-teal-500 text-[color:var(--bg)] font-bold">
+          Adicionar
+        </button>
+        <button id="btnLimpar" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white">
+          Limpar
+        </button>
+      </div>
+      <p id="formMsg" class="mt-3 text-sm"></p>
+    </section>
+
+    <!-- Coluna central: Malha -->
+    <section class="xl:col-span-2 grid grid-rows-[auto,1fr] gap-6">
+      <!-- Painel de status -->
+      <div class="bg-[color:var(--card)]/80 border border-white/5 rounded-2xl p-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 class="font-semibold">Resumo da Malha</h3>
+            <p class="text-sm text-[color:var(--muted)]">Visão geral do arranjo e status dos equipamentos</p>
+          </div>
+          <div class="pill px-3 py-1 rounded-full text-sm"><span class="text-[color:var(--muted)]">Equipamentos:</span> <span id="countEqp" class="font-semibold">0</span></div>
+        </div>
+      </div>
+
+      <!-- Área interativa -->
+      <div class="bg-[color:var(--card)]/80 border border-white/5 rounded-2xl p-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- Lista de Equipamentos -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold">Equipamentos na Malha</h3>
+            <div class="text-xs text-[color:var(--muted)]">Clique para focar</div>
+          </div>
+          <ul id="listaEquipamentos" class="nice-scroll max-h-[480px] overflow-auto space-y-3">
+            <!-- itens renderizados dinamicamente -->
+          </ul>
+        </div>
+
+        <!-- Visual da malha -->
+        <div class="lg:col-span-3 grid grid-rows-[auto,auto,1fr] gap-4">
+          <!-- Painel Impacto Ambiental inline -->
+          <div class="border border-white/10 rounded-xl p-4 bg-white/5">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 class="font-semibold">Impacto Ambiental (ao vivo)</h3>
+                <p class="text-xs text-[color:var(--muted)]">Baseado nos equipamentos e composição do gás</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="pill px-3 py-1 rounded-full text-sm">CH₄: <span id="pctCH4" class="font-semibold text-emerald-300">—</span>%</div>
+                <div class="pill px-3 py-1 rounded-full text-sm">CO₂: <span id="pctCO2" class="font-semibold text-sky-300">—</span>%</div>
+                <div class="pill px-3 py-1 rounded-full text-sm">Índice: <span id="impactoBadge" class="font-semibold text-amber-300">—</span></div>
+              </div>
+            </div>
+            <!-- Mapa de calor -->
+            <div class="mt-4 grid grid-cols-12 gap-1" id="heatmap">
+              <!-- células geradas dinamicamente -->
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-semibold">Topologia Simplificada</h3>
+            <div class="flex items-center gap-2">
+              <button id="btnAutoLayout" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm">Auto-organizar</button>
+              <button id="btnLimparMalha" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm">Limpar malha</button>
+            </div>
+          </div>
+          <div class="relative rounded-xl border border-white/10 bg-gradient-to-b from-slate-900/40 to-slate-900/10 overflow-hidden min-h-[420px]">
+            <!-- Canvas/Mapa SVG -->
+            <svg id="svgMalha" viewBox="0 0 800 420" class="w-full h-[420px]">
+              <defs>
+                <linearGradient id="nodeG" x1="0" x2="1">
+                  <stop offset="0%" stop-color="#34d399"/>
+                  <stop offset="100%" stop-color="#60a5fa"/>
+                </linearGradient>
+                <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+                </filter>
+              </defs>
+              <rect x="0" y="0" width="800" height="420" fill="url(#bgGrad)"></rect>
+              <g id="edges"></g>
+              <g id="nodes"></g>
+            </svg>
+            <div class="absolute bottom-2 left-2 pill px-3 py-2 rounded-lg text-xs text-[color:var(--muted)] flex items-center gap-3">
+              <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-400"></span> Processo</span>
+              <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-sky-400"></span> Filtragem</span>
+              <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-400"></span> Controle</span>
+              <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-fuchsia-400"></span> Tubulação</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Topografia -->
+  <div id="modalTopo" class="hidden fixed inset-0 z-40 items-center justify-center">
+    <div class="modal-backdrop absolute inset-0"></div>
+    <div class="relative bg-[color:var(--card)] border border-white/10 rounded-2xl max-w-3xl w-[92vw] p-6">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-semibold">Topografia da Malha</h3>
+          <p class="text-sm text-[color:var(--muted)]">Vista elevacional simplificada com trechos e cotas</p>
+        </div>
+        <button data-close="#modalTopo" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10">Fechar</button>
+      </div>
+      <div class="rounded-xl overflow-hidden border border-white/10 bg-slate-900/40">
+        <svg viewBox="0 0 900 420" class="w-full h-[420px]">
+          <!-- Perfil de terreno simplificado -->
+          <defs>
+            <linearGradient id="terrain" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.15"/>
+              <stop offset="100%" stop-color="#10b981" stop-opacity="0.08"/>
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="900" height="420" fill="url(#terrain)"></rect>
+          <path d="M0,260 C120,220 180,240 260,210 C340,180 420,220 520,190 C620,160 700,200 780,170 C850,145 900,170 900,170 L900,420 L0,420 Z"
+                fill="#22d3ee14" stroke="#22d3ee55" stroke-width="2"/>
+          <!-- Trechos de tubulação com setas -->
+          <g stroke="#34d399" stroke-width="3" fill="none" class="flow-path">
+            <path d="M60,120 L280,140 L520,110 L760,130"/>
+          </g>
+          <!-- Pontos de instalação -->
+          <g>
+            <circle cx="60" cy="120" r="8" fill="#34d399"/>
+            <circle cx="280" cy="140" r="8" fill="#60a5fa"/>
+            <circle cx="520" cy="110" r="8" fill="#f59e0b"/>
+            <circle cx="760" cy="130" r="8" fill="#a78bfa"/>
+          </g>
+          <!-- Rótulos -->
+          <g font-size="12" fill="#cbd5e1">
+            <text x="48" y="105">Entrada</text>
+            <text x="268" y="125">Tratamento</text>
+            <text x="508" y="95">Compressão</text>
+            <text x="748" y="115">Saída</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Impacto Ambiental -->
+  <div id="modalImpacto" class="hidden fixed inset-0 z-40 items-center justify-center">
+    <div class="modal-backdrop absolute inset-0"></div>
+    <div class="relative bg-[color:var(--card)] border border-white/10 rounded-2xl max-w-3xl w-[92vw] p-6">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-semibold">Impacto Ambiental — Estimativa</h3>
+          <p class="text-sm text-[color:var(--muted)]">Cálculo simplificado com base nos equipamentos e composição do gás</p>
+        </div>
+        <button data-close="#modalImpacto" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10">Fechar</button>
+      </div>
+      <div id="impactoContent" class="space-y-4">
+        <!-- Conteúdo gerado dinamicamente -->
+      </div>
+      <div class="mt-6 flex items-center justify-end">
+        <button data-close="#modalImpacto" class="px-4 py-2 rounded-lg bg-[color:var(--primary)]/15 hover:bg-[color:var(--primary)]/25 text-[color:var(--primary-strong)] font-semibold">Ok, entendi</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Estado da aplicação
+    const equipamentos = []; // {id, tipo, ponto, gas, params:{}, dims:{}, categoria, cor}
+    let idSeq = 1;
+
+    const tipoCampoMapa = {
+      "Separador": {
+        categoria: "processo", cor:"#34d399",
+        parametros: ["Taxa de separação","Nível de líquido","Eficiência"],
+        dimensoes: ["Diâmetro","Comprimento","Volume Útil","Espessura","Material"],
+      },
+      "Filtro": {
+        categoria: "filtragem", cor:"#60a5fa",
+        parametros: ["Eficiência","Tempo de operação","Histórico de manutenções"],
+        dimensoes: ["Diâmetro","Comprimento","Área efetiva","Material do invólucro","Tipo de filtro"],
+      },
+      "Compressor": {
+        categoria: "processo", cor:"#34d399",
+        parametros: ["Eficiência"],
+        dimensoes: ["Diâmetro do rotor","Material do rotor","Material da carcaça","Nº de estágios","Peso total"],
+      },
+      "Válvula": {
+        categoria: "controle", cor:"#f59e0b",
+        parametros: ["Tempo de resposta","Número de ciclos"],
+        dimensoes: ["Diâmetro nominal","Material"],
+      },
+      "Tubulação": {
+        categoria: "tubulação", cor:"#f0abfc",
+        parametros: ["Ponto de Destino"],
+        dimensoes: ["Diâmetro","Comprimento","Pressão"],
+      },
+    };
+
+    // Exemplos por campo (placeholders com unidades)
+    function exemploPlaceholder(label){
+      const k = label.toLowerCase();
+      if(k.includes('Diâmetro do rotor')) return 'Ex.: 0,65 m';
+      if(k.includes('Diâmetro nominal')) return 'Ex.: DN150 (ou 0,15 m)';
+      if(k.includes('Diâmetro')) return 'Ex.: 0,8 m';
+      if(k.includes('Comprimento')) return 'Ex.: 6 m';
+      if(k.includes('Volume útil')) return 'Ex.: 3,2 m³';
+      if(k.includes('Espessura')) return 'Ex.: 12 mm';
+      if(k.includes('Pressão')) return 'Ex.: 45 bar';
+      if(k.includes('Área efetiva')) return 'Ex.: 1,5 m²';
+      if(k.includes('Material do invólucro')) return 'Ex.: Aço carbono ASTM A516';
+      if(k.includes('Material da carcaça')) return 'Ex.: Aço inox 316L';
+      if(k.includes('Material do rotor')) return 'Ex.: Inconel 718';
+      if(k.includes('Material')) return 'Ex.: Aço carbono';
+      if(k.includes('Peso total')) return 'Ex.: 2.500 kg';
+      if(k.includes('Nº de estágios') || k.includes('estágios')) return 'Ex.: 3';
+      if(k.includes('Tempo de operação')) return 'Ex.: 12.000 h';
+      if(k.includes('Histórico de manutenções')) return 'Ex.: 2022-03 troca de elemento';
+      if(k.includes('Nível de líquido')) return 'Ex.: 65 %';
+      if(k.includes('Taxa de separação')) return 'Ex.: 98 %';
+      if(k.includes('Eficiência')) return 'Ex.: 85 %';
+      if(k.includes('Tipo de filtro')) return 'Ex.: Coalescente';
+      if(k.includes('Ponto de destino')) return 'Ex.: Saída para Estágio 2';
+      return 'Informe...';
+    }
+
+    // Elementos
+    const tipoEl = document.getElementById('tipo');
+    const pontoEl = document.getElementById('pontoInstalacao');
+    const gasEl = document.getElementById('gas');
+    const paramsContainer = document.getElementById('parametrosContainer');
+    const listaEl = document.getElementById('listaEquipamentos');
+    const countEl = document.getElementById('countEqp');
+    const formMsg = document.getElementById('formMsg');
+    const svgNodes = document.getElementById('nodes');
+    const svgEdges = document.getElementById('edges');
+    const impactoBadge = document.getElementById('impactoBadge');
+
+    // Utilidades
+    function createInputRow(label, key){
+      const id = 'f_'+key.replace(/\s+/g,'_').toLowerCase();
+      const wrap = document.createElement('div');
+      wrap.className = 'grid grid-cols-1 gap-2 sm:grid-cols-3 items-center';
+      const l = document.createElement('label');
+      l.className = 'text-sm text-[color:var(--muted)] sm:col-span-1';
+      l.textContent = label;
+      const i = document.createElement('input');
+      i.className = 'sm:col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40';
+      i.placeholder = exemploPlaceholder(label);
+      i.dataset.key = key; // manter texto original
+      i.id = id;
+      wrap.appendChild(l);
+      wrap.appendChild(i);
+      return wrap;
+    }
+
+    function renderDynamicFields(){
+      paramsContainer.innerHTML = '';
+      const tipo = tipoEl.value;
+      if(!tipo) return;
+      const spec = tipoCampoMapa[tipo];
+      // Parâmetros operacionais
+      const h1 = document.createElement('h4');
+      h1.className = 'mt-1 mb-1 text-sm font-semibold text-emerald-300';
+      h1.textContent = 'Parâmetros operacionais';
+      paramsContainer.appendChild(h1);
+      const hint1 = document.createElement('div');
+      hint1.className = 'text-xs text-[color:var(--muted)] mb-1';
+      hint1.textContent = 'Exemplos e unidades aparecem como dicas no campo.';
+      paramsContainer.appendChild(hint1);
+      spec.parametros.forEach(p=>{
+        paramsContainer.appendChild(createInputRow(p,p));
+      });
+      // Dimensões físicas
+      const h2 = document.createElement('h4');
+      h2.className = 'mt-3 mb-1 text-sm font-semibold text-sky-300';
+      h2.textContent = 'Dimensões físicas';
+      paramsContainer.appendChild(h2);
+      const hint2 = document.createElement('div');
+      hint2.className = 'text-xs text-[color:var(--muted)] mb-1';
+      hint2.textContent = 'Inclua unidades. Ex.: Diâmetro (m), Comprimento (m), Pressão (bar).';
+      paramsContainer.appendChild(hint2);
+      spec.dimensoes.forEach(d=>{
+        paramsContainer.appendChild(createInputRow(d,d));
+      });
+    }
+
+    tipoEl.addEventListener('change', renderDynamicFields);
+
+    function validateForm(){
+      formMsg.textContent = '';
+      formMsg.className = 'mt-3 text-sm';
+      const tipo = tipoEl.value;
+      const ponto = (pontoEl.value||'').trim();
+      const gas = (gasEl.value||'').trim();
+      if(!tipo){ return {ok:false, msg:'Selecione o tipo de equipamento.'}; }
+      if(!ponto){ return {ok:false, msg:'Informe o ponto de instalação (obrigatório).'}; }
+      if(!gas){ return {ok:false, msg:'Informe a composição do gás (obrigatório).'}; }
+      // validação simples da composição: par chave=valor
+      const parts = gas.split(',').map(s=>s.trim()).filter(Boolean);
+      if(parts.length===0 || !parts.every(p=>/^[A-Za-z0-9]+=\s*\d+(\.\d+)?$/.test(p))){
+        return {ok:false, msg:'Use o formato CH4=90, CO2=5, ...'};
+      }
+      return {ok:true};
+    }
+
+    function getDynamicValues(){
+      const inputs = paramsContainer.querySelectorAll('input[data-key]');
+      const params = {};
+      const dims = {};
+      const tipo = tipoEl.value;
+      const spec = tipoCampoMapa[tipo];
+      inputs.forEach(inp=>{
+        const k = inp.dataset.key;
+        if(spec.parametros.includes(k)) params[k]=inp.value.trim();
+        else dims[k]=inp.value.trim();
+      });
+      return {params, dims};
+    }
+
+    function addEquipamento(){
+      const v = validateForm();
+      if(!v.ok){
+        formMsg.textContent = v.msg;
+        formMsg.classList.add('text-rose-300');
+        return;
+      }
+      const {params, dims} = getDynamicValues();
+      // montar objeto
+      const tipo = tipoEl.value;
+      const spec = tipoCampoMapa[tipo];
+      const data = {
+        id: 'E'+(idSeq++),
+        tipo,
+        ponto: pontoEl.value.trim(),
+        gas: gasEl.value.trim(),
+        params,
+        dims,
+        categoria: spec.categoria,
+        cor: spec.cor
+      };
+      equipamentos.push(data);
+      updateList();
+      updateGraph();
+      calcularImpacto();
+      showFormMessage('Equipamento adicionado à malha!', true);
+      clearForm(false);
+    }
+
+    function showFormMessage(text, ok){
+      formMsg.textContent = text;
+      formMsg.className = 'mt-3 text-sm '+(ok?'text-emerald-300':'text-rose-300');
+      setTimeout(()=>{ formMsg.textContent=''; formMsg.className='mt-3 text-sm'; }, 2000);
+    }
+
+    function clearForm(clearTipo=true){
+      if(clearTipo){ tipoEl.value=''; paramsContainer.innerHTML=''; }
+      pontoEl.value=''; gasEl.value='';
+      paramsContainer.querySelectorAll('input').forEach(i=>i.value='');
+    }
+
+    function removeEquipamento(id){
+      const idx = equipamentos.findIndex(e=>e.id===id);
+      if(idx>=0){
+        equipamentos.splice(idx,1);
+        updateList();
+        updateGraph();
+        calcularImpacto();
+      }
+    }
+
+    function updateList(){
+      countEl.textContent = equipamentos.length;
+      // update badge de impacto simples
+      impactoBadge.textContent = equipamentos.length? 'Em análise' : '—';
+
+      // render in-place with keyed items
+      const existingIds = new Set([...listaEl.children].map(li=>li.dataset.id));
+      // add or update
+      equipamentos.forEach(eq=>{
+        let li = [...listaEl.children].find(n=>n.dataset.id===eq.id);
+        const content = renderListItem(eq);
+        if(li){
+          // update selectively
+          li.replaceWith(content);
+        }else{
+          listaEl.appendChild(content);
+        }
+        existingIds.delete(eq.id);
+      });
+      // remove missing
+      existingIds.forEach(id=>{
+        const li = [...listaEl.children].find(n=>n.dataset.id===id);
+        if(li) li.remove();
+      });
+    }
+
+    function renderListItem(eq){
+      const li = document.createElement('li');
+      li.dataset.id = eq.id;
+      li.className = 'group border border-white/10 rounded-xl p-4 bg-white/5 hover:bg-white/10 transition';
+      li.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="inline-block h-2.5 w-2.5 rounded-full" style="background:${eq.cor}"></span>
+              <span class="font-semibold">${eq.tipo}</span>
+              <span class="pill text-[color:var(--muted)] text-xs px-2 py-0.5 rounded-full">${eq.id}</span>
+            </div>
+            <div class="text-sm text-[color:var(--muted)] mt-1">Ponto: <span class="text-slate-200">${eq.ponto}</span></div>
+            <div class="text-xs text-[color:var(--muted)] truncate">Gás: ${eq.gas}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button data-focus="${eq.id}" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs">Focar</button>
+            <button data-remove="${eq.id}" class="px-2.5 py-1.5 rounded-lg bg-[color:var(--danger)]/20 hover:bg-[color:var(--danger)]/30 text-rose-200 border border-rose-300/20 text-xs">Remover</button>
+          </div>
+        </div>
+      `;
+      // bind actions
+      li.querySelector('[data-remove]').addEventListener('click', (e)=>{
+        const id = e.currentTarget.getAttribute('data-remove');
+        removeEquipamento(id);
+      });
+      li.querySelector('[data-focus]').addEventListener('click', (e)=>{
+        const id = e.currentTarget.getAttribute('data-focus');
+        focusNode(id);
+      });
+      return li;
+    }
+
+    // Layout simples em grade para nós
+    function updateGraph(){
+      svgNodes.innerHTML = '';
+      svgEdges.innerHTML = '';
+      if(equipamentos.length===0) return;
+
+      const cols = Math.min(4, Math.max(2, Math.ceil(Math.sqrt(equipamentos.length))));
+      const rows = Math.ceil(equipamentos.length/cols);
+      const W = 760, H = 360, padX=40, padY=40;
+      const stepX = (W - 2*padX) / Math.max(1,(cols-1));
+      const stepY = (H - 2*padY) / Math.max(1,(rows-1));
+
+      const positions = {};
+      equipamentos.forEach((eq, idx)=>{
+        const r = Math.floor(idx/cols);
+        const c = idx%cols;
+        const x = padX + c*stepX + 20;
+        const y = padY + r*stepY + 20;
+        positions[eq.id] = {x,y};
+      });
+
+      // Desenhar arestas simples sequenciais
+      for(let i=0;i<equipamentos.length-1;i++){
+        const a = positions[equipamentos[i].id];
+        const b = positions[equipamentos[i+1].id];
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        const d = `M ${a.x} ${a.y} C ${(a.x+b.x)/2} ${a.y}, ${(a.x+b.x)/2} ${b.y}, ${b.x} ${b.y}`;
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', '#64748b');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('class', 'flow-path');
+        svgEdges.appendChild(path);
+      }
+
+      // Desenhar nós
+      equipamentos.forEach(eq=>{
+        const {x,y} = positions[eq.id];
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.setAttribute('data-id', eq.id);
+        g.setAttribute('transform', `translate(${x},${y})`);
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        circle.setAttribute('r','16');
+        circle.setAttribute('fill', eq.cor);
+        circle.setAttribute('opacity','0.95');
+        circle.setAttribute('filter','url(#soft)');
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+        label.setAttribute('x','22');
+        label.setAttribute('y','5');
+        label.setAttribute('fill','#e2e8f0');
+        label.setAttribute('font-size','12');
+        label.textContent = `${eq.tipo} (${eq.id})`;
+
+        g.appendChild(circle);
+        g.appendChild(label);
+
+        g.addEventListener('click', ()=> focusNode(eq.id));
+        svgNodes.appendChild(g);
+      });
+    }
+
+    function focusNode(id){
+      // destacar nó e rolar lista
+      const node = svgNodes.querySelector(`g[data-id="${id}"]`);
+      if(!node) return;
+      // efeito de destaque
+      node.querySelector('circle').setAttribute('stroke','#ffffff');
+      node.querySelector('circle').setAttribute('stroke-width','3');
+      setTimeout(()=>{
+        if(node.isConnected){
+          node.querySelector('circle').removeAttribute('stroke');
+          node.querySelector('circle').removeAttribute('stroke-width');
+        }
+      }, 800);
+
+      const li = [...listaEl.children].find(n=>n.dataset.id===id);
+      if(li){
+        li.scrollIntoView({behavior:'smooth', block:'center'});
+        li.classList.add('ring-2','ring-emerald-400/40');
+        setTimeout(()=>li.classList.remove('ring-2','ring-emerald-400/40'), 800);
+      }
+    }
+
+    // Impacto ambiental (estimativa simples)
+    function calcularImpacto(){
+      // cálculo simplificado: peso por tipo + fator por CO2; CH4 apenas exibido
+      const fatoresTipo = { "Separador": 1.2, "Filtro": 0.8, "Compressor": 2.0, "Válvula": 0.5, "Tubulação": 0.6 };
+      let base = 0;
+      let co2Pct = 0; // maior CO2 entre equipamentos
+      let ch4Pct = 0; // maior CH4 entre equipamentos
+
+      equipamentos.forEach(eq=>{
+        base += (fatoresTipo[eq.tipo] || 1);
+        const parts = eq.gas.split(',').map(s=>s.trim());
+        const cco2 = parts.find(p=>/^CO2=/i.test(p));
+        const cch4 = parts.find(p=>/^CH4=/i.test(p));
+        if(cco2){ const v = parseFloat(cco2.split('=')[1]); if(!isNaN(v)) co2Pct = Math.max(co2Pct, v); }
+        if(cch4){ const v = parseFloat(cch4.split('=')[1]); if(!isNaN(v)) ch4Pct = Math.max(ch4Pct, v); }
+      });
+
+      const impacto = equipamentos.length ? (base * (1 + co2Pct/100)).toFixed(2) : '—';
+
+      // Atualiza badges inline
+      const pctCH4El = document.getElementById('pctCH4');
+      const pctCO2El = document.getElementById('pctCO2');
+      impactoBadge.textContent = impacto;
+      pctCH4El.textContent = equipamentos.length ? ch4Pct : '—';
+      pctCO2El.textContent = equipamentos.length ? co2Pct : '—';
+
+      // Heatmap simples (12 colunas = meses / cargas)
+      const heat = document.getElementById('heatmap');
+      heat.innerHTML = '';
+      const cells = 48; // 4 linhas x 12 colunas
+      for(let i=0;i<cells;i++){
+        const level = equipamentos.length ? Math.min(1, (co2Pct/100) * (0.6 + 0.4*Math.sin(i))) : 0; // varia com seno
+        const r = Math.floor(255 * level);
+        const g = Math.floor(64 + 120 * (1-level));
+        const b = Math.floor(64);
+        const cell = document.createElement('div');
+        cell.className = 'aspect-square rounded-sm';
+        cell.title = equipamentos.length ? `Carga ${i+1}: impacto relativo ${(level*100).toFixed(0)}%` : 'Sem dados';
+        cell.style.background = `rgb(${r}, ${g}, ${b})`;
+        heat.appendChild(cell);
+      }
+
+      // Atualiza também o modal (mantido para uso)
+      const cont = document.getElementById('impactoContent');
+      if(!cont) return;
+      cont.innerHTML = '';
+      const resumo = document.createElement('div');
+      resumo.className = 'border border-white/10 rounded-xl p-4 bg-white/5';
+      resumo.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-[color:var(--muted)]">Índice agregado (escala relativa)</div>
+            <div class="text-2xl font-extrabold text-emerald-300">${impacto}</div>
+          </div>
+          <div class="text-sm text-[color:var(--muted)]">
+            Equipamentos: <span class="text-slate-200 font-semibold">${equipamentos.length}</span><br/>
+            CO₂ máximo na mistura: <span class="text-slate-200 font-semibold">${co2Pct}%</span><br/>
+            CH₄ máximo na mistura: <span class="text-slate-200 font-semibold">${ch4Pct}%</span>
+          </div>
+        </div>
+      `;
+      cont.appendChild(resumo);
+    }
+
+    // Topografia modal
+    const modalTopo = document.getElementById('modalTopo');
+    const modalImpacto = document.getElementById('modalImpacto');
+    document.getElementById('btnTopo').addEventListener('click', ()=>{
+      openModal(modalTopo);
+    });
+    document.getElementById('btnImpacto').addEventListener('click', ()=>{
+      calcularImpacto();
+    });
+    document.querySelectorAll('[data-close]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const sel = btn.getAttribute('data-close');
+        const el = document.querySelector(sel);
+        closeModal(el);
+      });
+    });
+    function openModal(el){ el.classList.remove('hidden'); el.classList.add('flex'); }
+    function closeModal(el){ el.classList.add('hidden'); el.classList.remove('flex'); }
+
+    // Botões do formulário
+    document.getElementById('btnAdicionar').addEventListener('click', addEquipamento);
+    document.getElementById('btnLimpar').addEventListener('click', ()=> clearForm(true));
+
+    // Botões da malha
+    document.getElementById('btnAutoLayout').addEventListener('click', updateGraph);
+    document.getElementById('btnLimparMalha').addEventListener('click', ()=>{
+      equipamentos.splice(0, equipamentos.length);
+      updateList();
+      updateGraph();
+    });
+
+    // Interação extra: clique fora fecha modal
+    [modalTopo, modalImpacto].forEach(m=>{
+      m.addEventListener('click', (e)=>{ if(e.target===m) closeModal(m); });
+    });
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9724884d9294d5e8',t:'MTc1NTcyMDYwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
