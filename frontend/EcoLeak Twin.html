@@ -554,20 +554,18 @@ document.getElementById('btnCalcular').addEventListener('click', async () => {
     return;
   }
 
-  // 🔹 Agrupa equipamentos por tipo
+  // Agrupa por tipo
   const agrupados = {};
   equipamentos.forEach(eq => {
-    if(!agrupados[eq.tipo]) {
+    if(!agrupados[eq.tipo]){
       agrupados[eq.tipo] = [];
     }
-
-    // Monta objeto sem os campos internos "params" e "dims" em branco
     agrupados[eq.tipo].push({
       nome: eq.nome,
       ponto: eq.ponto,
       gas: eq.gas,
-      ...eq.params,  // espalha os parâmetros operacionais
-      ...eq.dims     // espalha as dimensões físicas
+      params: eq.params,
+      dims: eq.dims
     });
   });
 
@@ -575,30 +573,18 @@ document.getElementById('btnCalcular').addEventListener('click', async () => {
     const response = await fetch('http://127.0.0.1:5000/salvar-json', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(agrupados, null, 2) // já vai no formato agrupado
+      body: JSON.stringify(agrupados)
     });
-
-    const text = await response.text();
-    console.log("Resposta bruta do servidor:", text);
-
-    let result;
-    try {
-      result = JSON.parse(text);
-    } catch (e) {
-      alert("Resposta do servidor não é JSON válido. Veja no console.");
-      return;
-    }
-
+    const result = await response.json();
     if(result.status === "ok"){
-      alert(result.msg); // Ex: "Arquivo único salvo com todos os equipamentos!"
+      alert(result.msg);
     } else {
-      alert("Erro ao salvar: " + result.msg);
+      alert("Erro: " + result.msg);
     }
   } catch (err) {
     alert("Erro de conexão: " + err.message);
   }
 });
-
 
  // Envia JSON para o backend (FIM) ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -606,6 +592,7 @@ document.getElementById('btnCalcular').addEventListener('click', async () => {
 </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9724884d9294d5e8',t:'MTc1NTcyMDYwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
+
 
 
 
