@@ -1,0 +1,32 @@
+{
+  "leak_ratio": {
+    "expected_ratio": 0.05,
+    "actual_ratio": 0.19924,
+    "deviation": 0.14923999999999998,
+    "acceptable": "False"
+  },
+  "pressure": {
+    "column": "pressure",
+    "ks_statistic": 0.2536243150300308,
+    "p_value": 0.0,
+    "within_parameters": "False"
+  },
+  "flow_rate": {
+    "column": "flow_rate",
+    "ks_statistic": 0.14500875592640805,
+    "p_value": 0.0,
+    "within_parameters": "False"
+  },
+  "temperature": {
+    "column": "temperature",
+    "ks_statistic": 0.0034327340380804205,
+    "p_value": 0.5964217419305411,
+    "within_parameters": "True"
+  },
+  "vibration": {
+    "column": "vibration",
+    "ks_statistic": 0.1526660925196407,
+    "p_value": 0.0,
+    "within_parameters": "False"
+  }
+}

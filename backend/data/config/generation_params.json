@@ -1,0 +1,26 @@
+{
+  "normal_operation": {
+    "pressure": {"mean": 80, "std": 3},
+    "flow_rate": {"mean": 55, "std": 8},
+    "temperature": {"mean": 25, "std": 2},
+    "vibration": {"mean": 5, "std": 1.5}
+  },
+  "leak_patterns": {
+    "probability": 0.05,
+    "pressure_drop": 0.3,
+    "vibration_increase": 1.5,
+    "flow_reduction": 0.2,
+    "effect_duration": 5
+  },
+  "compressor_params": {
+    "bearing_temperature": {"mean": 70, "std": 10},
+    "oil_pressure": {"mean": 3.0, "std": 0.5},
+    "power_consumption": {"mean": 8.5, "std": 1.5},
+    "efficiency": {"mean": 0.85, "std": 0.08}
+  },
+  "temporal_settings": {
+    "time_frequency": "min",
+    "seasonal_amplitude": 0.1,
+    "correlation_strength": 0.3
+  }
+}
