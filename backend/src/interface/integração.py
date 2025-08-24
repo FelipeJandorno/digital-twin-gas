@@ -60,3 +60,39 @@ if __name__ == "__main__":
     alert("Erro de conexão: " + err.message);
   }
 });
+
+
+
+
+// correção
+
+
+from flask import Flask, request, jsonify, render_template
+import os, json
+
+app = Flask(__name__)
+
+JSON_DIR = "json"
+os.makedirs(JSON_DIR, exist_ok=True)
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route('/salvar-json', methods=['POST'])
+def salvar_json():
+    data = request.json
+    if not data:
+        return jsonify({"status": "erro", "msg": "Nenhum dado recebido"}), 400
+
+    for eq in data:
+        eq_id = eq.get("id", "sem_id")
+        filename = os.path.join(JSON_DIR, f"equipamento_{eq_id}.json")
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(eq, f, ensure_ascii=False, indent=2)
+
+    return jsonify({"status": "ok", "msg": f"{len(data)} arquivos salvos!"})
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
