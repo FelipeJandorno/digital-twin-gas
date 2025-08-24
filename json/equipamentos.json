@@ -1,0 +1,47 @@
+{
+  "Válvula": [
+    {
+      "nome": "A",
+      "ponto": "A",
+      "gas": "CH4=90",
+      "params": {
+        "Tempo de resposta": "20",
+        "Número de ciclos": "100"
+      },
+      "dims": {
+        "Diâmetro nominal": "30",
+        "Material": "Aço"
+      }
+    },
+    {
+      "nome": "B",
+      "ponto": "B",
+      "gas": "CH4=90",
+      "params": {
+        "Tempo de resposta": "20",
+        "Número de ciclos": "40"
+      },
+      "dims": {
+        "Diâmetro nominal": "DN150",
+        "Material": "Carbono"
+      }
+    }
+  ],
+  "Compressor": [
+    {
+      "nome": "A",
+      "ponto": "A",
+      "gas": "CH4=90",
+      "params": {
+        "Eficiência": "86"
+      },
+      "dims": {
+        "Diâmetro do rotor": "0,6",
+        "Material do rotor": "718",
+        "Material da carcaça": "Inox",
+        "Nº de estágios": "60",
+        "Peso total": "5000"
+      }
+    }
+  ]
+}
