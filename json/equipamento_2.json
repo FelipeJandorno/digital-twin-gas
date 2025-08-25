@@ -1,0 +1,15 @@
+{
+  "id": 2,
+  "nome": "B",
+  "tipo": "Válvula",
+  "ponto": "B",
+  "gas": "90",
+  "params": {
+    "Tempo de resposta": "B",
+    "Número de ciclos": "B"
+  },
+  "dims": {
+    "Diâmetro nominal": "B",
+    "Material": "B"
+  }
+}

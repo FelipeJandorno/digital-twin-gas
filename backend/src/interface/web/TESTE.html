@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Análise</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .result-section {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+            margin-top: 20px;
+        }
+
+        .result-header {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+
+        .card h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1em;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .json-view {
+            background: #2d2d2d;
+            color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Sistema de Análise de Equipamentos</h1>
+        
+        <div class="form-section">
+            <div class="form-group">
+                <label for="idEquipamento">ID do Equipamento:</label>
+                <input type="text" id="idEquipamento" placeholder="Digite o ID do equipamento">
+            </div>
+            
+            <div class="form-group">
+                <label for="tipoEquipamento">Tipo de Equipamento:</label>
+                <select id="tipoEquipamento">
+                    <option value="">Selecione o tipo</option>
+                    <option value="gasoduto">Gasoduto</option>
+                    <option value="compressor">Compressor</option>
+                </select>
+            </div>
+            
+            <button onclick="enviarDados()">🔍 Analisar Equipamento</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processando dados...</p>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-header">
+                <h2>📋 Resultado da Análise</h2>
+                <p>Dados processados com sucesso!</p>
+            </div>
+
+            <div class="card">
+                <h3>📦 Gasodutos</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">ID do Equipamento</div>
+                        <div class="info-value" id="gasodutoId">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">% Vazamento</div>
+                        <div class="info-value" id="vazamentoGasoduto">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Metano</div>
+                        <div class="info-value" id="metano">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">CO₂ equivalente</div>
+                        <div class="info-value" id="co2Gasoduto">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⚙️ Compressores</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">% Vazamento</div>
+                        <div class="info-value" id="vazamentoCompressor">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">CO₂ equivalente</div>
+                        <div class="info-value" id="co2Compressor">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📊 Informações Gerais</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Total de Equipamentos</div>
+                        <div class="info-value" id="totalEquipamentos">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Data/Hora da Análise</div>
+                        <div class="info-value" id="timestamp">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-secondary" onclick="baixarJSON()">💾 Baixar JSON</button>
+                <button class="btn-success" onclick="copiarJSON()">📋 Copiar Dados</button>
+                <button onclick="novaAnalise()">🔄 Nova Análise</button>
+            </div>
+
+            <div class="json-view">
+                <pre id="jsonRaw">Aguardando dados...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function enviarDados() {
+            const idEquipamento = document.getElementById('idEquipamento').value;
+            const tipoEquipamento = document.getElementById('tipoEquipamento').value;
+            
+            if (!idEquipamento || !tipoEquipamento) {
+                alert('Por favor, preencha todos os campos!');
+                return;
+            }
+
+            // Mostra loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultSection').style.display = 'none';
+
+            const dados = {
+                id_equipamento: idEquipamento,
+                tipo_equipamento: tipoEquipamento,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/salvar-json', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.status === "ok") {
+                    exibirResultados(result.dados);
+                } else {
+                    throw new Error(result.msg);
+                }
+
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao processar: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function exibirResultados(dados) {
+            // Preenche os dados dos gasodutos
+            document.getElementById('gasodutoId').textContent = dados.gasodutos.Id;
+            document.getElementById('vazamentoGasoduto').textContent = dados.gasodutos['% vazamento'];
+            document.getElementById('metano').textContent = dados.gasodutos.Metano;
+            document.getElementById('co2Gasoduto').textContent = dados.gasodutos['CO2 eq'];
+
+            // Preenche os dados dos compressores
+            document.getElementById('vazamentoCompressor').textContent = dados.compressores['% vazamento'];
+            document.getElementById('co2Compressor').textContent = dados.compressores['CO2 eq'];
+
+            // Preenche informações gerais
+            document.getElementById('totalEquipamentos').textContent = dados.total_equipamentos;
+            document.getElementById('timestamp').textContent = new Date(dados.timestamp).toLocaleString('pt-BR');
+
+            // Exibe JSON raw
+            document.getElementById('jsonRaw').textContent = JSON.stringify(dados, null, 2);
+
+            // Mostra a seção de resultados
+            document.getElementById('resultSection').style.display = 'block';
+        }
+
+        function baixarJSON() {
+            window.open('http://127.0.0.1:5000/download-json', '_blank');
+        }
+
+        async function copiarJSON() {
+            try {
+                const jsonText = document.getElementById('jsonRaw').textContent;
+                await navigator.clipboard.writeText(jsonText);
+                alert('✅ Dados copiados para a área de transferência!');
+            } catch (error) {
+                console.error('Erro ao copiar:', error);
+                alert('❌ Erro ao copiar dados');
+            }
+        }
+
+        function novaAnalise() {
+            document.getElementById('idEquipamento').value = '';
+            document.getElementById('tipoEquipamento').value = '';
+            document.getElementById('resultSection').style.display = 'none';
+        }
+
+        // Enter key support
+        document.getElementById('idEquipamento').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                enviarDados();
+            }
+        });
+
+        document.getElementById('tipoEquipamento').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                enviarDados();
+            }
+        });
+    </script>
+</body>
+</html>

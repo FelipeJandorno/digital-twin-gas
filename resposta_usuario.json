@@ -1,0 +1,14 @@
+{
+    "gasodutos": {
+        "Id": "2",
+        "% vazamento": "10%",
+        "Metano": "100 und",
+        "CO2 eq": "150 und"
+    },
+    "compressores": {
+        "% vazamento": "5%",
+        "CO2 eq": "200 und"
+    },
+    "timestamp": "2025-08-25T08:47:27.422636",
+    "total_equipamentos": "23"
+}

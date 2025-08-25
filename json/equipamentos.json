@@ -1,46 +1,45 @@
 {
   "Válvula": [
     {
+      "id": 1,
       "nome": "A",
       "ponto": "A",
-      "gas": "CH4=90",
+      "gas": "90",
       "params": {
-        "Tempo de resposta": "20",
-        "Número de ciclos": "100"
+        "Tempo de resposta": "A",
+        "Número de ciclos": "A"
       },
       "dims": {
-        "Diâmetro nominal": "30",
-        "Material": "Aço"
+        "Diâmetro nominal": "A",
+        "Material": "A"
       }
     },
     {
+      "id": 2,
       "nome": "B",
       "ponto": "B",
-      "gas": "CH4=90",
+      "gas": "90",
       "params": {
-        "Tempo de resposta": "20",
-        "Número de ciclos": "40"
+        "Tempo de resposta": "B",
+        "Número de ciclos": "B"
       },
       "dims": {
-        "Diâmetro nominal": "DN150",
-        "Material": "Carbono"
+        "Diâmetro nominal": "B",
+        "Material": "B"
       }
-    }
-  ],
-  "Compressor": [
+    },
     {
-      "nome": "A",
-      "ponto": "A",
-      "gas": "CH4=90",
+      "id": 3,
+      "nome": "C",
+      "ponto": "C",
+      "gas": "80",
       "params": {
-        "Eficiência": "86"
+        "Tempo de resposta": "C",
+        "Número de ciclos": "C"
       },
       "dims": {
-        "Diâmetro do rotor": "0,6",
-        "Material do rotor": "718",
-        "Material da carcaça": "Inox",
-        "Nº de estágios": "60",
-        "Peso total": "5000"
+        "Diâmetro nominal": "C",
+        "Material": "C"
       }
     }
   ]
