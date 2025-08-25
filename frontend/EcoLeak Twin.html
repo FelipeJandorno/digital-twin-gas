@@ -102,10 +102,9 @@
       <!-- Composição do gás -->
       <div class="mb-4">
         <div class="flex items-center justify-between">
-          <label class="block text-sm text-[color:var(--muted)]">Composição do gás</label>
-          <span class="text-xs text-[color:var(--muted)]">Ex.: CH4=90, C2H6=5, CO2=5</span>
+          <label class="block text-sm text-[color:var(--muted)]"> Percentual de metano na composição do gás</label>
         </div>
-        <input id="gas" placeholder="Componente=%, separado por vírgulas" class="w-full mt-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"/>
+        <input id="gas" placeholder="Ex.: 85" class="w-full mt-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"/>
       </div>
 
       <!-- Parâmetros dinâmicos -->
@@ -274,8 +273,8 @@
       },
       "Tubulação": {
         categoria: "tubulação", cor:"#f0abfc",
-        parametros: ["Ponto de Destino"],
-        dimensoes: ["Diâmetro","Comprimento","Pressão Mínima", "Pressão Máxima", "Vazão Mínima", "Vazão Máxima", "Temperatura Mínima", "Temperatura Máxima"],
+        parametros: ["Pressão Mínima", "Pressão Máxima", "Vazão Mínima", "Vazão Máxima", "Temperatura Mínima", "Temperatura Máxima"],
+        dimensoes: ["Diâmetro","Comprimento","Ponto de Destino"],
       },
     };
 
@@ -308,9 +307,11 @@ function exemploPlaceholder(label) {
   if (k.includes('material da carcaca')) return 'Ex.: Aço inox 316L';
   if (k.includes('material do rotor')) return 'Ex.: Inconel 718';
   if (k.includes('material')) return 'Ex.: Aço carbono';
+  if (k.includes('numero de ciclos')) return 'Ex.: 2';
   if (k.includes('peso total')) return 'Ex.: 2.500 kg';
   if (k.includes('nº de estagios') || k.includes('estagios')) return 'Ex.: 3';
   if (k.includes('tempo de operacao')) return 'Ex.: 12.000 h';
+  if (k.includes('tempo de resposta')) return 'Ex.: 2 h';
   if (k.includes('historico de manutencoes')) return 'Ex.: 2022-03 troca de elemento';
   if (k.includes('nivel de liquido')) return 'Ex.: 65 %';
   if (k.includes('taxa de separacao')) return 'Ex.: 98 %';
@@ -408,12 +409,7 @@ function exemploPlaceholder(label) {
       if(!tipo){ return {ok:false, msg:'Selecione o tipo de equipamento.'}; }
       if(!ponto){ return {ok:false, msg:'Informe o ponto de instalação (obrigatório).'}; }
       if(!gas){ return {ok:false, msg:'Informe a composição do gás (obrigatório).'}; }
-      // validação simples da composição: par chave=valor
-      const parts = gas.split(',').map(s=>s.trim()).filter(Boolean);
-      if(parts.length===0 || !parts.every(p=>/^[A-Za-z0-9]+=\s*\d+(\.\d+)?$/.test(p))){
-        return {ok:false, msg:'Use o formato CH4=90, CO2=5, ...'};
-      }
-      return {ok:true};
+           return {ok:true};
     }
 // Função para atualizar a lista de equipamentos na tela
 function renderListaEquipamentos() {
@@ -561,6 +557,7 @@ document.getElementById('btnCalcular').addEventListener('click', async () => {
       agrupados[eq.tipo] = [];
     }
     agrupados[eq.tipo].push({
+      id: eq.id,
       nome: eq.nome,
       ponto: eq.ponto,
       gas: eq.gas,
