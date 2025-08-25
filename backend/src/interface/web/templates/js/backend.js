@@ -1,0 +1,113 @@
+<script>
+    function updateConnectionStatus(status, message) {
+        statusIndicator.classList.remove('status-connecting', 'status-connected', 'status-error', 'status-offline');
+        statusIndicator.classList.add(`status-${status}`);
+        statusMessage.textContent = message;
+        backendOnline = status === 'connected';
+    }
+
+    // Função para testar a conexão com o backend
+    async function testBackendConnection() {
+    updateConnectionStatus('connecting', 'Testando conexão...');
+    
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/health', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.ok) {
+        const data = await response.json();
+        updateConnectionStatus('connected', 'Conectado ao backend');
+        return true;
+        } else {
+        updateConnectionStatus('error', 'Erro na conexão');
+        return false;
+        }
+    } catch (error) {
+        console.error('Erro ao conectar:', error);
+        updateConnectionStatus('error', 'Falha na conexão');
+        return false;
+    }
+    }
+
+    // Função para enviar dados para o backend
+    async function enviarParaBackend(dados) {
+    updateConnectionStatus('connecting', 'Enviando dados...');
+    
+    try {
+        const response = await fetch('http://127.0.0.1:5000/salvar-json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+        });
+        
+        if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.status === "ok") {
+        updateConnectionStatus('connected', 'Dados salvos com sucesso!');
+        return { success: true, message: result.msg };
+        } else {
+        updateConnectionStatus('error', 'Erro no servidor');
+        return { success: false, message: result.msg };
+        }
+    } catch (err) {
+        console.error('Erro de conexão:', err);
+        updateConnectionStatus('error', 'Erro de conexão');
+        return { success: false, message: "Erro de conexão: " + err.message };
+    }
+    }
+
+    // Envia JSON para o backend
+    document.getElementById('btnCalcular').addEventListener('click', async () => {
+    if (equipamentos.length === 0) {
+        alert('Nenhum equipamento adicionado.');
+        return;
+    }
+
+    // Verifica se o backend está online
+    if (!backendOnline) {
+        const conectado = await testBackendConnection();
+        if (!conectado) {
+        alert('Backend offline. Verifique se o servidor está rodando.');
+        return;
+        }
+    }
+
+    // Prepara dados para envio
+    const dadosParaEnvio = {
+        equipamentos: equipamentos,
+        timestamp: new Date().toISOString(),
+        total_equipamentos: equipamentos.length
+    };
+
+    // Envia para o backend
+    const resultado = await enviarParaBackend(dadosParaEnvio);
+    
+    if (resultado.success) {
+        alert(resultado.message);
+        
+        // Exporta localmente também
+        const jsonStr = JSON.stringify(equipamentos, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'equipamentos_backup.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        
+    } else {
+        alert("Erro: " + resultado.message);
+    }
+    });
+
+    window.addEventListener('load', () => {
+    setTimeout(testBackendConnection, 1000);
+    });
+
+</script>
