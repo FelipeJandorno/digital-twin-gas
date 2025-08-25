@@ -569,7 +569,9 @@ document.getElementById('btnCalcular').addEventListener('click', async () => {
   try {
     const response = await fetch('http://127.0.0.1:5000/salvar-json', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify(agrupados)
     });
     const result = await response.json();
@@ -581,10 +583,82 @@ document.getElementById('btnCalcular').addEventListener('click', async () => {
   } catch (err) {
     alert("Erro de conexão: " + err.message);
   }
+
+  recebeDados();
 });
 
  // Envia JSON para o backend (FIM) ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Recebe os dados do backend
+async function recebeDados(){
+    try {
+        const response = await fetch('http://127.0.0.1:5000/enviar-json', {
+            method: 'GET',
+            headers: { 
+                'Accept': 'application/json'
+            }
+        });
+        
+        // Verifique o content-type antes de fazer .json()
+        const contentType = response.headers.get('content-type');
+        
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Resposta não é JSON:', text.substring(0, 200));
+            alert('Servidor retornou HTML em vez de JSON. Verifique a rota.');
+            return;
+        }
+        
+        const result = await response.json();
 
+        if(result.status === "ok"){
+            // alert(JSON.stringify(result.data));
+            atualizarInterface(result.data);
+        } else {
+            alert("Erro: " + result.msg);
+        }
+    } catch (err) {
+        alert("Erro de conexão: " + err.message);
+    }
+}
+
+async function atualizarInterface(dados) {
+    // Atualiza os campos de parâmetros
+    document.getElementById('inpFE').value = dados.parametros.fator_emissao.valor;
+    document.getElementById('inpUtil').value = dados.parametros.utilizacao.valor;
+    document.getElementById('inpLeak').value = dados.parametros.fugas.valor;
+    document.getElementById('inpHoras').value = dados.parametros.horas_mes.valor;
+    
+    // Atualiza os resultados
+    document.getElementById('resCO2').textContent = dados.resultados.fugas_co2.valor;
+    document.getElementById('resCH4').textContent = dados.resultados.fugas_ch4.valor;
+    document.getElementById('resIndex').textContent = dados.resultados.indice_combinado.valor;
+    
+    // Atualiza o mapa de calor (exemplo básico)
+    const heatMarks = document.getElementById('heatMarks');
+    heatMarks.innerHTML = ''; // Limpa marcadores existentes
+    
+    // Adiciona marcadores com base nos dados (exemplo)
+    if (dados.mapa_calor && dados.mapa_calor.pontos) {
+        dados.mapa_calor.pontos.forEach(ponto => {
+            const mark = document.createElement('div');
+            mark.style.position = 'absolute';
+            mark.style.left = ponto.x + '%';
+            mark.style.top = ponto.y + '%';
+            mark.style.width = '10px';
+            mark.style.height = '10px';
+            mark.style.backgroundColor = 'white';
+            mark.style.borderRadius = '50%';
+            mark.style.opacity = ponto.intensidade || 0.7;
+            heatMarks.appendChild(mark);
+        });
+    }
+    
+    // Atualiza timestamp se disponível
+    if (dados.timestamp) {
+        // Você pode adicionar a exibição do timestamp se houver um elemento para isso
+        console.log('Dados atualizados em:', new Date(dados.timestamp).toLocaleString('pt-BR'));
+    }
+}
 
 </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9724884d9294d5e8',t:'MTc1NTcyMDYwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>

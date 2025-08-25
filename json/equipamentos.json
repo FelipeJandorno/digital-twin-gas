@@ -4,7 +4,7 @@
       "id": 1,
       "nome": "A",
       "ponto": "A",
-      "gas": "90",
+      "gas": "56",
       "params": {
         "Tempo de resposta": "A",
         "Número de ciclos": "A"
@@ -12,34 +12,6 @@
       "dims": {
         "Diâmetro nominal": "A",
         "Material": "A"
-      }
-    },
-    {
-      "id": 2,
-      "nome": "B",
-      "ponto": "B",
-      "gas": "90",
-      "params": {
-        "Tempo de resposta": "B",
-        "Número de ciclos": "B"
-      },
-      "dims": {
-        "Diâmetro nominal": "B",
-        "Material": "B"
-      }
-    },
-    {
-      "id": 3,
-      "nome": "C",
-      "ponto": "C",
-      "gas": "80",
-      "params": {
-        "Tempo de resposta": "C",
-        "Número de ciclos": "C"
-      },
-      "dims": {
-        "Diâmetro nominal": "C",
-        "Material": "C"
       }
     }
   ]

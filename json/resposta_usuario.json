@@ -1,0 +1,55 @@
+{
+  "parametros": {
+    "fator_emissao": {
+      "id": "inpFE",
+      "valor": 20,
+      "unidade": "kg CO₂e/MWh",
+      "tipo": "number"
+    },
+    "utilizacao": {
+      "id": "inpUtil",
+      "valor": 30,
+      "unidade": "%",
+      "tipo": "number"
+    },
+    "fugas": {
+      "id": "inpLeak",
+      "valor": 40.0,
+      "unidade": "% estimado",
+      "tipo": "number",
+      "step": 50.1
+    },
+    "horas_mes": {
+      "id": "inpHoras",
+      "valor": 60,
+      "unidade": "Horas/Mês",
+      "tipo": "number"
+    }
+  },
+  "resultados": {
+    "fugas_co2": {
+      "id": "resCO2",
+      "valor": "70 t",
+      "unidade": "t",
+      "descricao": "Fugas [CO₂ eq./mês]"
+    },
+    "fugas_ch4": {
+      "id": "resCH4",
+      "valor": "80 t",
+      "unidade": "t",
+      "descricao": "Fugas [CH₄ eq./mês]"
+    },
+    "indice_combinado": {
+      "id": "resIndex",
+      "valor": "90.0",
+      "descricao": "Índice combinado"
+    }
+  },
+  "mapa_calor": {
+    "id": "heatMarks",
+    "descricao": "Pontos mostram áreas com maior contribuição relativa.",
+    "estilo": "gradiente de emerald-400/30 para yellow-300/30 para red-500/30"
+  },
+  "timestamp": "2023-08-25T18:30:00Z",
+  "versao": "1.0"
+}
