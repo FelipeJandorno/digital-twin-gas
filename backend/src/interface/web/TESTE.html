@@ -1,413 +1,1263 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Análise</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ECOLEAK TWIN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#121a2b;
+      --muted:#93a4c0;
+      --primary:#6ee7b7;
+      --primary-strong:#34d399;
+      --accent:#60a5fa;
+      --danger:#f87171;
+      --warning:#fbbf24;
+    }
+    body{font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";}
+    /* Suave brilho em elementos principais */
+    .glow{box-shadow: 0 0 0 rgba(110,231,183,0); transition: box-shadow .3s ease;}
+    .glow:hover{box-shadow: 0 10px 30px rgba(110,231,183,.15);}
+    /* Mini badgets */
+    .pill{background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08)}
+    /* Scroll bonita para listas */
+    .nice-scroll{scrollbar-width: thin; scrollbar-color: #334155 transparent;}
+    .nice-scroll::-webkit-scrollbar{height:8px;width:8px}
+    .nice-scroll::-webkit-scrollbar-thumb{background:#334155;border-radius:8px}
+    .nice-scroll::-webkit-scrollbar-track{background:transparent}
+    /* Animação simples para topo da malha */
+    @keyframes pulsePath {
+      0% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: 60; }
+    }
+    .flow-path { stroke-dasharray: 6 6; animation: pulsePath 2.5s linear infinite; }
+    /* Modal base */
+    .modal-backdrop{background: rgba(2,6,23,.6); backdrop-filter: blur(6px);}
+    
+    /* Estilo para o cartão de detalhes */
+    .equipment-card {
+      position: absolute;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 15px;
+      max-width: 300px;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      display: none;
+    }
+    
+    .cluster-circle {
+      stroke: white;
+      stroke-width: 2;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .cluster-circle:hover {
+      stroke-width: 3;
+      filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8));
+    }
+    
+    .cluster-text {
+      fill: rgb(10, 6, 6);
+      font-weight: bold;
+      font-size: 20px;
+      text-anchor: middle;
+      dominant-baseline: central;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .cluster-text:hover {
+      font-size: 18px;
+    }
+    
+    .flow-path {
+      stroke-dasharray: 5,5;
+      animation: flowAnimation 2s linear infinite;
+    }
+    
+    @keyframes flowAnimation {
+      from {
+        stroke-dashoffset: 10;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    
+    /* Controles de zoom */
+    .zoom-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 10;
+    }
+    
+    .zoom-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(52, 211, 153, 0.8);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+    }
+    
+    .zoom-btn:hover {
+      background: rgba(52, 211, 153, 1);
+    }
+    
+.malha-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+.malha-container.panning {
+  cursor: grabbing;
+}
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
+  .heat-map-gradient {
+    width: 100%;
+    height: 100%;
+    border-radius: 0.5rem;
+  }
+  
+  .heat-point-overlay {
+    position: absolute;
+    border-radius: 50%;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
 
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-
-        .form-section {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            border: 1px solid #e9ecef;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #495057;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            width: 100%;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .result-section {
-            display: none;
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            border: 2px solid #667eea;
-            margin-top: 20px;
-        }
-
-        .result-header {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #333;
-        }
-
-        .card {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #dee2e6;
-        }
-
-        .card h3 {
-            color: #495057;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 8px;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .info-item {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-        }
-
-        .info-label {
-            font-weight: 600;
-            color: #6c757d;
-            font-size: 0.9em;
-            margin-bottom: 5px;
-        }
-
-        .info-value {
-            font-size: 1.1em;
-            color: #333;
-            font-weight: 500;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 25px;
-            flex-wrap: wrap;
-        }
-
-        .action-buttons button {
-            flex: 1;
-            min-width: 150px;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        }
-
-        .json-view {
-            background: #2d2d2d;
-            color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-            font-family: 'Courier New', monospace;
-            overflow-x: auto;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-                margin: 10px;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-        }
-    </style>
+.transform-group {
+  transition: transform 0.1s ease;
+}
+    
+    .svg-pan-zoom_viewport {
+      cursor: grab;
+    }
+    
+    .svg-pan-zoom_viewport:active {
+      cursor: grabbing;
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <h1>📊 Sistema de Análise de Equipamentos</h1>
-        
-        <div class="form-section">
-            <div class="form-group">
-                <label for="idEquipamento">ID do Equipamento:</label>
-                <input type="text" id="idEquipamento" placeholder="Digite o ID do equipamento">
-            </div>
-            
-            <div class="form-group">
-                <label for="tipoEquipamento">Tipo de Equipamento:</label>
-                <select id="tipoEquipamento">
-                    <option value="">Selecione o tipo</option>
-                    <option value="gasoduto">Gasoduto</option>
-                    <option value="compressor">Compressor</option>
-                </select>
-            </div>
-            
-            <button onclick="enviarDados()">🔍 Analisar Equipamento</button>
+<body class="min-h-screen bg-[var(--bg)] text-white">
+  <header class="max-w-7xl mx-auto px-6 pt-8">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-200 text-xs tracking-wide">
+          <span>Digital Twin para Detecção de Vazamentos </span>
+          <span class="opacity-60">- Estação de Compressão</span>
         </div>
-
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Processando dados...</p>
-        </div>
-
-        <div class="result-section" id="resultSection">
-            <div class="result-header">
-                <h2>📋 Resultado da Análise</h2>
-                <p>Dados processados com sucesso!</p>
-            </div>
-
-            <div class="card">
-                <h3>📦 Gasodutos</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">ID do Equipamento</div>
-                        <div class="info-value" id="gasodutoId">-</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">% Vazamento</div>
-                        <div class="info-value" id="vazamentoGasoduto">-</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Metano</div>
-                        <div class="info-value" id="metano">-</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">CO₂ equivalente</div>
-                        <div class="info-value" id="co2Gasoduto">-</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>⚙️ Compressores</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">% Vazamento</div>
-                        <div class="info-value" id="vazamentoCompressor">-</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">CO₂ equivalente</div>
-                        <div class="info-value" id="co2Compressor">-</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>📊 Informações Gerais</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">Total de Equipamentos</div>
-                        <div class="info-value" id="totalEquipamentos">-</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Data/Hora da Análise</div>
-                        <div class="info-value" id="timestamp">-</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="action-buttons">
-                <button class="btn-secondary" onclick="baixarJSON()">💾 Baixar JSON</button>
-                <button class="btn-success" onclick="copiarJSON()">📋 Copiar Dados</button>
-                <button onclick="novaAnalise()">🔄 Nova Análise</button>
-            </div>
-
-            <div class="json-view">
-                <pre id="jsonRaw">Aguardando dados...</pre>
-            </div>
-        </div>
+        <h1 class="mt-4 text-3xl md:text-4xl font-extrabold leading-tight">
+          EcoLeak Twin
+        </h1>
+        <p class="mt-2 text-[var(--muted)] max-w-2xl">
+          Adicione equipamentos, visualize a malha e estime o impacto ambiental da operação.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="btnExportar" class="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold transition">
+          Exportar Relatório (PDF)
+        </button>        
+      </div>
     </div>
+  </header>
 
-    <script>
-        async function enviarDados() {
-            const idEquipamento = document.getElementById('idEquipamento').value;
-            const tipoEquipamento = document.getElementById('tipoEquipamento').value;
-            
-            if (!idEquipamento || !tipoEquipamento) {
-                alert('Por favor, preencha todos os campos!');
-                return;
+  <!-- Main -->
+  <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
+    
+    <!-- Coluna esquerda: Formulário -->
+    <section class="xl:col-span-1 bg-[color:var(--card)]/80 border border-white/5 rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">Adicionar Equipamento</h2>
+        <span class="pill text-[color:var(--muted)] text-xs px-2.5 py-1 rounded-full">Campos obrigatórios</span>
+      </div>
+
+      <!-- Tipo -->
+      <label class="block text-sm text-[color:var(--muted)] mb-1">Tipo de equipamento</label>
+      <select id="tipo" class="w-full mb-4 px-3 py-2 rounded-lg bg-[#121a2b] border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 text-white">
+        <option value="" disabled selected>Selecione</option>
+        <option>Separador</option>
+        <option>Filtro</option>
+        <option>Compressor</option>
+        <option>Válvula</option>
+        <option>Tubulação</option>
+      </select>
+
+      <!-- Nome do equipamento -->
+      <label class="block text-sm text-[color:var(--muted)] mb-1">Nome do Equipamento</label>
+      <input id="nomeequip" placeholder="Ex.: Compressor-A" class="w-full mb-4 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"/>
+
+      <!-- Ponto de instalação -->
+      <label class="block text-sm text-[color:var(--muted)] mb-1">Ponto de instalação (A-Z)</label>
+      <input id="pontoInstalacao" placeholder="Ex.: A" class="w-full mb-4 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"/>
+
+      <!-- Composição do gás -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between">
+          <label class="block text-sm text-[color:var(--muted)]"> Percentual de metano na composição do gás</label>
+        </div>
+        <input id="gas" placeholder="Ex.: 85" class="w-full mt-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"/>
+      </div>
+
+      <!-- Parâmetros dinâmicos -->
+      <div id="parametrosContainer" class="space-y-3"></div>
+
+      <!-- Botões -->
+      <div class="mt-6 flex items-center gap-3">
+        <button id="btnAdicionar" class="glow flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-400 to-teal-500 text-[color:var(--bg)] font-bold">
+          Adicionar
+        </button>
+        <button id="btnLimpar" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white">
+          Limpar
+        </button>
+      </div>
+      <p id="formMsg" class="mt-3 text-sm"></p>
+    </section>
+
+    <!-- Coluna central: Malha -->
+    <section class="xl:col-span-2 grid grid-rows-[auto,1fr] gap-6">
+      <!-- Painel de status -->
+      <div class="bg-[color:var(--card)]/80 border border-white/5 rounded-2xl p-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="font-semibold">Resumo da Malha</h2>
+            <p class="text-sm text-[var(--muted)]">Visão geral do arranjo e status dos equipamentos</p>
+          </div>
+          <div class="pill px-3 py-1 rounded-full text-sm"><span class="text-[var(--muted)]">Equipamentos:</span> <span id="countEqp" class="font-semibold">0</span></div>
+        </div>
+      </div>
+
+      <div class="border border-white/10 rounded-xl p-4 bg-[var(--bg)]"> 
+        <!-- Cabeçalho com título e botões -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Equipamentos na Malha</h2>
+          
+          <!-- Botões no canto direito -->
+          <div class="flex gap-2">
+   
+          </div>
+        </div>
+
+        <!-- GRID: lista e malha -->
+        <div class="grid grid-cols-1 gap-4">
+          <!-- Lista -->
+          <div class="space-y-2 border border-white/10 rounded-lg p-3 bg-white/5">
+            <h3 class="font-medium">Lista de Equipamentos</h3>
+            <ul id="listaEquipamentos" class="nice-scroll max-h-[240px] overflow-auto space-y-3">
+            </ul>    
+          </div>
+
+          <!-- Malha -->
+          <div class="border border-white/10 rounded-lg p-3 bg-white/5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-medium">Malha de Nós</h3>
+              <div class="flex gap-2">
+
+                <button id="btnClear" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg">
+                  Limpar Malha
+                </button>
+              </div>
+            </div>
+            <div class="relative bg-white/5 rounded-lg h-96 flex items-center justify-center malha-container">
+              <svg id="malhaSVG" class="w-full h-full"></svg>
+              <div class="zoom-controls">
+                <button id="zoomIn" class="zoom-btn">+</button>
+                <button id="zoomOut" class="zoom-btn">-</button>
+                <button id="resetZoom" class="zoom-btn">⟳</button>
+              </div>
+              <div id="equipmentCard" class="equipment-card"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Impacto ambiental --> 
+    <section class="xl:col-span-3 bg-[color:var(--card)]/80 border border-white/5 rounded-2xl p-3">
+      <div class="bg-[var(--card)]/80 backdrop-blur rounded-2xl p-6 flex flex-col gap-1">
+        <!-- Cabeçalho -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold">Impacto Ambiental</h2>
+          <div class="flex items-center gap-2">
+            <button id="btnCalcular" class="px-4 py-2 rounded-lg bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-semibold">
+              Calcular Impacto
+            </button>
+            <button id="btnZerar" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 font-semibold">
+              Zerar Resultados
+            </button>
+          </div>
+        </div>
+
+        <!-- Conteúdo lado a lado -->
+        <div class="flex flex-col lg:flex-row gap-6">
+          
+          <!-- Resultados -->
+          <div class="flex-1">
+            <div class="text-sm text-[var(--muted)] mb-3">Resultados</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-lg p-3 bg-black/30">
+                <div class="text-xs text-[var(--muted)]">Percentual de Fuga (%)</div>
+                <div id="resIndex" class="text-2xl font-extrabold">0.0</div>
+              </div>
+              <div class="rounded-lg p-3 bg-black/20">
+                <div class="text-xs text-[var(--muted)]">Fugas [CH₄/mês]</div>
+                <div id="resCH4" class="text-2xl font-extrabold">0 t</div>
+              </div>
+              <div class="rounded-lg p-3 bg-black/20 col-span-2">
+                <div class="text-xs text-[var(--muted)]">Fugas [CO₂ eq./mês]</div>
+                <div id="resCO2" class="text-2xl font-extrabold">0 t</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mapa de Calor -->
+          <div class="flex-1 border border-white/10 rounded-xl p-4 bg-white/5">
+            <div class="text-sm text-[var(--muted)] mb-2">Mapa de calor</div>
+            <div id="heatMapContainer" class="h-40 rounded-lg relative overflow-hidden">
+              <div class="heat-map-gradient bg-gradient-to-br from-emerald-400/30 via-yellow-300/30 to-red-500/30"></div>
+              <div id="heatPointsOverlay" class="absolute inset-0"></div>
+            </div>
+            <div class="mt-3 text-xs text-[var(--muted)]">
+              Pontos mostram áreas com maior contribuição relativa.
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+<script>
+    // Estado da aplicação
+    const equipamentos = []; // {id, tipo, ponto, gas, params:{}, dims:{}, categoria, cor}
+    let idSeq = 1;
+    let connections = []; // Array para armazenar as conexões entre equipamentos
+    let currentScale = 1;
+    let panning = false;
+    let startPoint = { x: 0, y: 0 };
+    let start = { x: 0, y: 0 };
+    // Variáveis para controle de pan (arraste)
+    let isPanning = false;
+    let startX, startY;
+    let translateX = 0;
+    let translateY = 0;
+    let initialTranslateX = 0;
+    let initialTranslateY = 0;
+
+    // Mapa de tipos de equipamento com cores específicas
+    const tipoCampoMapa = {
+      "Separador": {
+        categoria: "processo", 
+        cor: "#34d399",
+        parametros: ["Taxa de separação","Nível de líquido","Eficiência"],
+        dimensoes: ["Diâmetro","Comprimento","Volume Útil","Espessura","Material"],
+      },
+      "Filtro": {
+        categoria: "filtragem", 
+        cor: "#60a5fa",
+        parametros: ["Eficiência","Tempo de operação","Histórico de manutenções"],
+        dimensoes: ["Diâmetro","Comprimento","Área efetiva","Material do invólucro","Tipo de filtro"],
+      },
+      "Compressor": {
+        categoria: "processo", 
+        cor: "#f87171", // Vermelho para compressor
+        parametros: ["Eficiência"],
+        dimensoes: ["Diâmetro do rotor","Material do rotor","Material da carcaça","Nº de estágios","Peso total"],
+      },
+      "Válvula": {
+        categoria: "controle", 
+        cor: "#f59e0b", // Amarelo para válvula
+        parametros: ["Tempo de resposta","Número de ciclos"],
+        dimensoes: ["Diâmetro nominal","Material"],
+      },
+      "Tubulação": {
+        categoria: "tubulação", 
+        cor: "#f0abfc", // Roxo para tubulação
+        parametros: ["Pressão Mínima", "Pressão Máxima", "Vazão Mínima", "Vazão Máxima", "Temperatura Mínima", "Temperatura Máxima"],
+        dimensoes: ["Diâmetro","Comprimento","Ponto de Destino"],
+      },
+    };
+
+    // Função auxiliar para remover acentos
+    function normalizarTexto(txt) {
+      return txt
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // remove acentos
+    }
+
+    // Exemplos por campo (placeholders com unidades) 
+    function exemploPlaceholder(label) {
+      const k = normalizarTexto(label);
+
+      if (k.includes('diametro do rotor')) return 'Ex.: 0,65 m';
+      if (k.includes('diametro nominal')) return 'Ex.: DN150 (ou 0,15 m)';
+      if (k.includes('diametro')) return 'Ex.: 0,8 m';
+      if (k.includes('comprimento')) return 'Ex.: 6 m';
+      if (k.includes('volume util')) return 'Ex.: 3,2 m³';
+      if (k.includes('espessura')) return 'Ex.: 12 mm';
+      if (k.includes('pressao minima')) return 'Ex.: 45 bar';
+      if (k.includes('pressao maxima')) return 'Ex.: 450 bar';
+      if (k.includes('vazao minima')) return 'Ex.: 2 m³/dia';
+      if (k.includes('vazao maxima')) return 'Ex.: 200 m³/dia';
+      if (k.includes('temperatura minima')) return 'Ex.: 10°C';
+      if (k.includes('temperatura maxima')) return 'Ex.: 100°C';
+      if (k.includes('area efetiva')) return 'Ex.: 1,5 m²';
+      if (k.includes('material do involucro')) return 'Ex.: Aço carbono ASTM A516';
+      if (k.includes('material da carcaca')) return 'Ex.: Aço inox 316L';
+      if (k.includes('material do rotor')) return 'Ex.: Inconel 718';
+      if (k.includes('material')) return 'Ex.: Aço carbono';
+      if (k.includes('numero de ciclos')) return 'Ex.: 2';
+      if (k.includes('peso total')) return 'Ex.: 2.500 kg';
+      if (k.includes('nº de estagios') || k.includes('estagios')) return 'Ex.: 3';
+      if (k.includes('tempo de operacao')) return 'Ex.: 12.000 h';
+      if (k.includes('tempo de resposta')) return 'Ex.: 2 h';
+      if (k.includes('historico de manutencoes')) return 'Ex.: 2022-03 troca de elemento';
+      if (k.includes('nivel de liquido')) return 'Ex.: 65 %';
+      if (k.includes('taxa de separacao')) return 'Ex.: 98 %';
+      if (k.includes('eficiencia')) return 'Ex.: 85 %';
+      if (k.includes('tipo de filtro')) return 'Ex.: Coalescente';
+      if (k.includes('ponto de destino')) return 'Ex.: Saída para Estágio 2';
+      return 'Informe...';
+    }
+
+    // Elementos
+    const tipoEl = document.getElementById('tipo');
+    const pontoEl = document.getElementById('pontoInstalacao');
+    const gasEl = document.getElementById('gas');
+    const nomeEl = document.getElementById('nomeequip'); 
+    const paramsContainer = document.getElementById('parametrosContainer');
+    const listaEl = document.getElementById('listaEquipamentos');
+    const countEl = document.getElementById('countEqp');
+    const formMsg = document.getElementById('formMsg');
+    const svgContainer = document.getElementById('malhaSVG');
+    const equipmentCard = document.getElementById('equipmentCard');
+    const zoomInBtn = document.getElementById('zoomIn');
+    const zoomOutBtn = document.getElementById('zoomOut');
+    const resetZoomBtn = document.getElementById('resetZoom');
+
+    // Utilidades
+    function createInputRow(label, key){
+      const id = 'f_'+key.replace(/\s+/g,'_').toLowerCase();
+      const wrap = document.createElement('div');
+      wrap.className = 'grid grid-cols-1 gap-2 sm:grid-cols-3 items-center';
+      const l = document.createElement('label');
+      l.className = 'text-sm text-[color:var(--muted)] sm:col-span-1';
+      l.textContent = label;
+      const i = document.createElement('input');
+      i.className = 'sm:col-span-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40';
+      i.placeholder = exemploPlaceholder(label);
+      i.dataset.key = key; // manter texto original
+      i.id = id;
+      wrap.appendChild(l);
+      wrap.appendChild(i);
+      return wrap;
+    }
+
+    function renderDynamicFields(){
+      paramsContainer.innerHTML = '';
+      const tipo = tipoEl.value;
+      if(!tipo) return;
+      const spec = tipoCampoMapa[tipo];
+      // Parâmetros operacionais
+      const h1 = document.createElement('h4');
+      h1.className = 'mt-1 mb-1 text-sm font-semibold text-emerald-300';
+      h1.textContent = 'Parâmetros operacionais';
+      paramsContainer.appendChild(h1);
+      const hint1 = document.createElement('div');
+      hint1.className = 'text-xs text-[color:var(--muted)] mb-1';
+      hint1.textContent = 'Exemplos e unidades aparecem como dicas no campo.';
+      paramsContainer.appendChild(h1);
+      spec.parametros.forEach(p=>{
+        paramsContainer.appendChild(createInputRow(p,p));
+      });
+      // Dimensões físicas
+      const h2 = document.createElement('h4');
+      h2.className = 'mt-3 mb-1 text-sm font-semibold text-sky-300';
+      h2.textContent = 'Dimensões físicas';
+      paramsContainer.appendChild(h2);
+      const hint2 = document.createElement('div');
+      hint2.className = 'text-xs text-[color:var(--muted)] mb-1';
+      hint2.textContent = 'Exemplos e unidades aparecem como dicas no campo.';
+      paramsContainer.appendChild(hint2);
+      spec.dimensoes.forEach(d=>{
+        paramsContainer.appendChild(createInputRow(d,d));
+      });
+    }
+
+    tipoEl.addEventListener('change', renderDynamicFields);
+    const btnLimpar = document.getElementById('btnLimpar');
+
+    btnLimpar.addEventListener('click', () => {
+      // Limpa campos fixos
+      tipoEl.value = '';
+      nomeEl.value = '';
+      pontoEl.value = '';
+      gasEl.value = '';
+
+      // Limpa campos dinâmicos
+      paramsContainer.innerHTML = '';
+
+      // Limpa mensagens
+      formMsg.textContent = '';
+    });
+
+    function validateForm(){
+      formMsg.textContent = '';
+      formMsg.className = 'mt-3 text-sm';
+      const tipo = tipoEl.value;
+      const ponto = (pontoEl.value||'').trim();
+      const gas = (gasEl.value||'').trim();
+      if(!tipo){ return {ok:false, msg:'Selecione o tipo de equipamento.'}; }
+      if(!ponto){ return {ok:false, msg:'Informe o ponto de instalação (obrigatório).'}; }
+      if(!gas){ return {ok:false, msg:'Informe a composição do gás (obrigatório).'}; }
+      
+      // Verifica se o ponto é uma letra de A a Z
+      if (!ponto.match(/^[A-Z]$/i)) {
+        return {ok:false, msg:'O ponto de instalação deve ser uma letra de A a Z.'};
+      }
+      
+      return {ok:true};
+    }
+
+    // Função para atualizar a lista de equipamentos na tela
+    function renderListaEquipamentos() {
+      listaEl.innerHTML = ''; // limpa lista
+      equipamentos.forEach(eq => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center px-3 py-2 rounded-lg bg-white/10 text-sm';
+        li.innerHTML = `
+          <div>
+            <strong>${eq.nome}</strong> - ${eq.tipo} - Ponto ${eq.ponto.toUpperCase()}
+          </div>
+          <button class="px-2 py-1 text-xs rounded bg-red-500/70 hover:bg-red-500" data-id="${eq.id}">Remover</button>
+        `;
+        listaEl.appendChild(li);
+
+        // Adiciona evento de remover
+        li.querySelector('button').addEventListener('click', (e) => {
+          const id = parseInt(e.target.dataset.id);
+          const index = equipamentos.findIndex(item => item.id === id);
+          if (index > -1) {
+            equipamentos.splice(index, 1);
+            renderListaEquipamentos();
+            renderMalha();
+            countEl.textContent = equipamentos.length;
+          }
+        });
+      });
+    }
+
+    // Função para renderizar a malha de nós
+    function renderMalha() {
+      const svg = document.getElementById('malhaSVG');
+      svg.innerHTML = ''; // Limpa a malha existente
+      
+      // Definições do viewBox para a malha
+      svg.setAttribute('viewBox', '0 0 1000 750');
+      
+      // Adicionar grupo de transformação para pan e zoom
+      const transformGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      transformGroup.setAttribute('id', 'transformGroup');
+      transformGroup.setAttribute('class', 'transform-group');
+      transformGroup.setAttribute('transform', `translate(${translateX}, ${translateY}) scale(${currentScale})`);
+      svg.appendChild(transformGroup);
+      
+      // Agrupar equipamentos por ponto
+      const equipamentosPorPonto = {};
+      equipamentos.forEach(eq => {
+        const ponto = eq.ponto.toUpperCase();
+        if (!equipamentosPorPonto[ponto]) {
+          equipamentosPorPonto[ponto] = [];
+        }
+        equipamentosPorPonto[ponto].push(eq);
+      });
+      
+      // Adicionar pontos de destino das tubulações mesmo sem equipamentos
+      connections.forEach(conn => {
+        if (!equipamentosPorPonto[conn.destino]) {
+          equipamentosPorPonto[conn.destino] = [];
+        }
+      });
+      
+      // Calcular posições para cada ponto (A-Z)
+      const posicoes = {};
+      const letras = Object.keys(equipamentosPorPonto).sort();
+      
+      // Posicionar em uma grade 5x6 (para até 30 pontos)
+      const colunas = 6;
+      const espacamentoX = 170;
+      const espacamentoY = 140;
+      const inicioX = 100;
+      const inicioY = 100;
+      
+      letras.forEach((letra, index) => {
+        const col = index % colunas;
+        const lin = Math.floor(index / colunas);
+        posicoes[letra] = {
+          x: inicioX + col * espacamentoX,
+          y: inicioY + lin * espacamentoY
+        };
+      });
+      
+      // Desenhar conexões primeiro (para ficarem atrás dos nós)
+      connections.forEach(conn => {
+        const origem = posicoes[conn.origem];
+        const destino = posicoes[conn.destino];
+        
+        if (origem && destino) {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', origem.x);
+          line.setAttribute('y1', origem.y);
+          line.setAttribute('x2', destino.x);
+          line.setAttribute('y2', destino.y);
+          line.setAttribute('stroke', '#4B5563');
+          line.setAttribute('stroke-width', '2');
+          line.setAttribute('class', 'flow-path');
+          transformGroup.appendChild(line);
+          
+          // Adicionar texto com o comprimento (opcional)
+          if (conn.comprimento) {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', (origem.x + destino.x) / 2);
+            text.setAttribute('y', (origem.y + destino.y) / 2 - 10);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', '#93a4c0');
+            text.setAttribute('font-size', '10');
+            text.textContent = `${conn.comprimento}m`;
+            transformGroup.appendChild(text);
+          }
+        }
+      });
+      
+      // Desenhar nós (pontos com equipamentos)
+      Object.keys(equipamentosPorPonto).forEach(letra => {
+        const pos = posicoes[letra];
+        const equipamentosNoPonto = equipamentosPorPonto[letra];
+        
+        if (pos) {
+          // AUMENTAR O RAIO BASE (de 15 para 20) e o incremento por equipamento (de 2 para 3)
+          const raio = 30 + (equipamentosNoPonto.length * 5); // Aumentado ainda mais
+          
+          // Desenhar círculo do ponto
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', pos.x);
+          circle.setAttribute('cy', pos.y);
+          circle.setAttribute('r', raio);
+          
+          // Cor diferente para pontos sem equipamentos (apenas tubulações)
+          if (equipamentosNoPonto.length === 0) {
+            circle.setAttribute('fill', '#6B7280'); // Cinza para pontos sem equipamentos
+            circle.setAttribute('stroke', '#9CA3AF');
+          } else {
+            circle.setAttribute('fill', '#06B6D4');
+            circle.setAttribute('stroke', '#8fce00');
+          }
+          
+          circle.setAttribute('stroke-width', '2');
+          circle.setAttribute('class', 'cluster-circle');
+          circle.setAttribute('data-ponto', letra);
+          circle.addEventListener('mouseover', (e) => {
+            mostrarDetalhesPonto(letra, equipamentosNoPonto, e.clientX, e.clientY);
+          });
+          circle.addEventListener('mouseout', () => {
+            esconderDetalhesPonto();
+          });
+          transformGroup.appendChild(circle);
+          
+          // Adicionar texto com a letra do ponto - AUMENTAR FONTE (de 14 para 16)
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', pos.x);
+          text.setAttribute('y', pos.y);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('fill', '#fff');
+          text.setAttribute('font-size', '20'); // Aumentado ainda mais
+          text.setAttribute('font-weight', 'bold');
+          text.setAttribute('class', 'cluster-text');
+          text.textContent = letra;
+          text.setAttribute('data-ponto', letra);
+          text.addEventListener('mouseover', (e) => {
+            mostrarDetalhesPonto(letra, equipamentosNoPonto, e.clientX, e.clientY);
+          });
+          text.addEventListener('mouseout', () => {
+            esconderDetalhesPonto();
+          });
+          transformGroup.appendChild(text);
+          
+          // Adicionar texto com a quantidade de equipamentos - AUMENTAR FONTE (de 10 para 12)
+          if (equipamentosNoPonto.length > 0) {
+            const countText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            countText.setAttribute('x', pos.x);
+            countText.setAttribute('y', pos.y + 27); // Ajustado para baixo (de 20 para 27)
+            countText.setAttribute('text-anchor', 'middle');
+            countText.setAttribute('fill', '#fff');
+            countText.setAttribute('font-size', '14'); // Aumentado de 10 para 14
+            countText.textContent = `${equipamentosNoPonto.length} EQ.`;
+            transformGroup.appendChild(countText);
+          }
+        }
+      });
+    }
+    // Funções para manipulação de pan (arraste)
+function startPan(e) {
+  isPanning = true;
+  const malhaContainer = document.querySelector('.malha-container');
+  malhaContainer.classList.add('panning');
+  
+  if (e.type === 'mousedown') {
+    startX = e.clientX - translateX;
+    startY = e.clientY - translateY;
+  } else if (e.type === 'touchstart') {
+    startX = e.touches[0].clientX - translateX;
+    startY = e.touches[0].clientY - translateY;
+  }
+  
+  initialTranslateX = translateX;
+  initialTranslateY = translateY;
+}
+
+function doPan(e) {
+  if (!isPanning) return;
+  
+  e.preventDefault();
+  
+  if (e.type === 'mousemove') {
+    translateX = e.clientX - startX;
+    translateY = e.clientY - startY;
+  } else if (e.type === 'touchmove') {
+    translateX = e.touches[0].clientX - startX;
+    translateY = e.touches[0].clientY - startY;
+  }
+  
+  updateTransform();
+}
+
+function endPan() {
+  isPanning = false;
+  const malhaContainer = document.querySelector('.malha-container');
+  malhaContainer.classList.remove('panning');
+}
+
+function updateTransform() {
+  const transformGroup = document.getElementById('transformGroup');
+  if (transformGroup) {
+    transformGroup.setAttribute('transform', `translate(${translateX}, ${translateY}) scale(${currentScale})`);
+  }
+}
+    // Função para mostrar detalhes de um ponto
+    function mostrarDetalhesPonto(letra, equipamentos, x, y) {
+      const card = document.getElementById('equipmentCard');
+      card.innerHTML = '';
+      
+      let html = `<h3 class="font-bold text-lg mb-2">Ponto ${letra}</h3>`;
+      
+      if (equipamentos.length === 0) {
+        // Verificar se é ponto de destino de alguma tubulação
+        const tubulacoesParaEstePonto = connections.filter(conn => conn.destino === letra);
+        
+        if (tubulacoesParaEstePonto.length > 0) {
+          html += `<p class="text-sm text-gray-300 mb-3">Ponto de destino de tubulação</p>`;
+          tubulacoesParaEstePonto.forEach(tub => {
+            html += `
+              <div class="mb-3 p-2 bg-white/5 rounded">
+                <h4 class="font-semibold">Tubulação com origem em ${tub.origem}</h4>
+                <div class="text-sm">
+                  <p><strong>Comprimento:</strong> ${tub.comprimento}m</p>
+                </div>
+              </div>
+            `;
+          });
+        } else {
+          html += `<p class="text-sm text-gray-300 mb-3">Ponto vazio</p>`;
+        }
+      } else {
+        html += `<p class="text-sm text-gray-300 mb-3">${equipamentos.length} equipamento(s)</p>`;
+        
+        equipamentos.forEach(eq => {
+          html += `
+            <div class="mb-3 p-2 bg-white/5 rounded">
+              <h4 class="font-semibold">${eq.nome} (${eq.tipo})</h4>
+              <div class="text-sm">
+                <p><strong>Composição do gás:</strong> ${eq.gas}% metano</p>
+          `;
+          
+          // Parâmetros operacionais
+          if (Object.keys(eq.params).length > 0) {
+            html += `<p class="mt-1"><strong>Parâmetros:</strong></p><ul class="text-xs">`;
+            for (const [key, value] of Object.entries(eq.params)) {
+              if (value) html += `<li>${key}: ${value}</li>`;
             }
-
-            // Mostra loading
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('resultSection').style.display = 'none';
-
-            const dados = {
-                id_equipamento: idEquipamento,
-                tipo_equipamento: tipoEquipamento,
-                timestamp: new Date().toISOString()
-            };
-
-            try {
-                const response = await fetch('http://127.0.0.1:5000/salvar-json', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(dados)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP: ${response.status}`);
-                }
-
-                const result = await response.json();
-                
-                if (result.status === "ok") {
-                    exibirResultados(result.dados);
-                } else {
-                    throw new Error(result.msg);
-                }
-
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao processar: ' + error.message);
-            } finally {
-                document.getElementById('loading').style.display = 'none';
+            html += `</ul>`;
+          }
+          
+          // Dimensões físicas
+          if (Object.keys(eq.dims).length > 0) {
+            html += `<p class="mt-1"><strong>Dimensões:</strong></p><ul class="text-xs">`;
+            for (const [key, value] of Object.entries(eq.dims)) {
+              if (value) html += `<li>${key}: ${value}</li>`;
             }
+            html += `</ul>`;
+          }
+          
+          html += `</div></div>`;
+        });
+      }
+      
+      card.innerHTML = html;
+      
+      // Posicionar o cartão dentro da área da malha
+      const malhaRect = document.getElementById('malhaSVG').getBoundingClientRect();
+      const cardWidth = 300;
+      const cardHeight = card.offsetHeight;
+      
+      // Ajustar posição para não sair da área da malha
+      let posX = x - malhaRect.left;
+      let posY = y - malhaRect.top;
+      
+      if (posX + cardWidth > malhaRect.width) {
+        posX = malhaRect.width - cardWidth - 10;
+      }
+      
+      if (posY + cardHeight > malhaRect.height) {
+        posY = malhaRect.height - cardHeight - 10;
+      }
+      
+      card.style.left = `${posX}px`;
+      card.style.top = `${posY}px`;
+      card.style.display = 'block';
+    }
+
+    // Função para esconder o cartão de detalhes
+    function esconderDetalhesPonto() {
+      const card = document.getElementById('equipmentCard');
+      card.style.display = 'none';
+    }
+
+    // Funções de zoom
+    function aplicarZoom() {
+  updateTransform();
+}
+
+    zoomInBtn.addEventListener('click', () => {
+      currentScale += 0.2;
+      aplicarZoom();
+    });
+
+    zoomOutBtn.addEventListener('click', () => {
+      if (currentScale > 0.4) {
+        currentScale -= 0.2;
+        aplicarZoom();
+      }
+    });
+
+    resetZoomBtn.addEventListener('click', () => {
+      currentScale = 1;
+      aplicarZoom();
+    });
+
+    // Botão adicionar equipamento
+    document.getElementById('btnAdicionar').addEventListener('click', () => {
+      const valid = validateForm();
+      if(!valid.ok){
+        formMsg.textContent = valid.msg;
+        formMsg.classList.add('text-red-500');
+        return;
+      }
+
+      // Cria objeto do equipamento
+      const eq = {
+        id: idSeq++,
+        tipo: tipoEl.value,
+        nome: nomeEl.value.trim(),
+        ponto: pontoEl.value.trim().toUpperCase(),
+        gas: gasEl.value.trim(),
+        params: {},
+        dims: {}
+      };
+
+      // Preenche parâmetros e dimensões separadamente
+      const inputs = paramsContainer.querySelectorAll('input');
+      inputs.forEach(inp => {
+        const key = inp.dataset.key;
+        if(tipoCampoMapa[tipoEl.value].parametros.includes(key)){
+          eq.params[key] = inp.value.trim();
+        } else if(tipoCampoMapa[tipoEl.value].dimensoes.includes(key)){
+          eq.dims[key] = inp.value.trim();
         }
+      });
 
-        function exibirResultados(dados) {
-            // Preenche os dados dos gasodutos
-            document.getElementById('gasodutoId').textContent = dados.gasodutos.Id;
-            document.getElementById('vazamentoGasoduto').textContent = dados.gasodutos['% vazamento'];
-            document.getElementById('metano').textContent = dados.gasodutos.Metano;
-            document.getElementById('co2Gasoduto').textContent = dados.gasodutos['CO2 eq'];
+      equipamentos.push(eq);
 
-            // Preenche os dados dos compressores
-            document.getElementById('vazamentoCompressor').textContent = dados.compressores['% vazamento'];
-            document.getElementById('co2Compressor').textContent = dados.compressores['CO2 eq'];
-
-            // Preenche informações gerais
-            document.getElementById('totalEquipamentos').textContent = dados.total_equipamentos;
-            document.getElementById('timestamp').textContent = new Date(dados.timestamp).toLocaleString('pt-BR');
-
-            // Exibe JSON raw
-            document.getElementById('jsonRaw').textContent = JSON.stringify(dados, null, 2);
-
-            // Mostra a seção de resultados
-            document.getElementById('resultSection').style.display = 'block';
+      // Se houver ponto de destino, criar conexão
+      if (eq.dims['Ponto de Destino']) {
+        const destino = eq.dims['Ponto de Destino'].trim().toUpperCase();
+        if (destino.match(/^[A-Z]$/)) {
+          const comprimento = parseFloat(eq.dims['Comprimento']) || 1;
+          
+          connections.push({
+            origem: eq.ponto,
+            destino: destino,
+            comprimento: comprimento
+          });
         }
+      }
 
-        function baixarJSON() {
-            window.open('http://127.0.0.1:5000/download-json', '_blank');
-        }
+      // Atualiza lista e contador
+      renderListaEquipamentos();
+      renderMalha();
+      countEl.textContent = equipamentos.length;
 
-        async function copiarJSON() {
-            try {
-                const jsonText = document.getElementById('jsonRaw').textContent;
-                await navigator.clipboard.writeText(jsonText);
-                alert('✅ Dados copiados para a área de transferência!');
-            } catch (error) {
-                console.error('Erro ao copiar:', error);
-                alert('❌ Erro ao copiar dados');
-            }
-        }
+      // Limpa campos
+      tipoEl.value = '';
+      nomeEl.value = '';
+      pontoEl.value = '';
+      gasEl.value = '';
+      paramsContainer.querySelectorAll('input').forEach(i => i.value = '');
+      formMsg.textContent = 'Equipamento adicionado com sucesso!';
+      formMsg.classList.remove('text-red-500');
+      formMsg.classList.add('text-green-400');
+    });
 
-        function novaAnalise() {
-            document.getElementById('idEquipamento').value = '';
-            document.getElementById('tipoEquipamento').value = '';
-            document.getElementById('resultSection').style.display = 'none';
-        }
+    // Botão para limpar a malha
+    document.getElementById('btnClear').addEventListener('click', () => {
+      connections = [];
+      equipamentos.length = 0;
+      renderMalha();
+      renderListaEquipamentos();
+      countEl.textContent = '0';
+      equipmentCard.style.display = 'none';
+    });
 
-        // Enter key support
-        document.getElementById('idEquipamento').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                enviarDados();
+        // Event listeners para pan (arraste)
+const malhaContainer = document.querySelector('.malha-container');
+
+// Mouse events
+malhaContainer.addEventListener('mousedown', startPan);
+malhaContainer.addEventListener('mousemove', doPan);
+malhaContainer.addEventListener('mouseup', endPan);
+malhaContainer.addEventListener('mouseleave', endPan);
+
+// Touch events para dispositivos móveis
+malhaContainer.addEventListener('touchstart', startPan);
+malhaContainer.addEventListener('touchmove', doPan);
+malhaContainer.addEventListener('touchend', endPan);
+
+// Prevenir scroll padrão na área da malha
+malhaContainer.addEventListener('wheel', e => e.preventDefault());
+
+    // Inicializar a malha vazia
+    renderMalha();
+  
+// PARTE PARA O GRADIENTE DO MAPA DE CALOR --------------------------------------------------------------------------------------------------------------------------
+// Função para calcular a poluição de um equipamento
+function calcularPoluicaoEquipamento(equipamento) {
+  // Valor base baseado no tipo de equipamento
+  let valorBase = 0;
+  switch(equipamento.tipo) {
+    case 'Compressor':
+      valorBase = 0.8;
+      break;
+    case 'Separador':
+      valorBase = 0.6;
+      break;
+    case 'Válvula':
+      valorBase = 0.4;
+      break;
+    case 'Filtro':
+      valorBase = 0.3;
+      break;
+    case 'Tubulação':
+      valorBase = 0.2;
+      break;
+    default:
+      valorBase = 0.5;
+  }
+  
+  // Ajustar baseado na composição do gás
+  const fatorGas = parseFloat(equipamento.gas) / 100 || 0.5;
+  
+  // Ajustar baseado na eficiência se disponível
+  let fatorEficiencia = 1;
+  if (equipamento.params.Eficiência) {
+    const eficiencia = parseFloat(equipamento.params.Eficiência) || 100;
+    fatorEficiencia = (100 - eficiencia) / 100;
+  }
+  
+  // Calcular poluição final (valor entre 0 e 1)
+  const poluicao = Math.min(1, valorBase * fatorGas * fatorEficiencia);
+  
+  return poluicao;
+}
+
+// Função para renderizar o mapa de calor
+function renderHeatMap() {
+  const heatPointsOverlay = document.getElementById('heatPointsOverlay');
+  // Limpar o overlay
+  heatPointsOverlay.innerHTML = '';
+  
+  // Agrupar equipamentos por ponto e calcular poluição total
+  const poluicaoPorPonto = {};
+  equipamentos.forEach(eq => {
+    const ponto = eq.ponto.toUpperCase();
+    if (!poluicaoPorPonto[ponto]) {
+      poluicaoPorPonto[ponto] = 0;
+    }
+    poluicaoPorPonto[ponto] += calcularPoluicaoEquipamento(eq);
+  });
+  
+  // Se não houver equipamentos, não fazer nada (manter gradiente padrão)
+  if (Object.keys(poluicaoPorPonto).length === 0) {
+    return;
+  }
+  
+  // Encontrar valor máximo para normalizar
+  const maxPoluicao = Math.max(...Object.values(poluicaoPorPonto));
+  
+  // Calcular posições para cada ponto (A-Z)
+  const posicoes = {};
+  const letras = Object.keys(poluicaoPorPonto).sort();
+  
+  // Posicionar em uma grade 5x6 (para até 30 pontos)
+  const colunas = 6;
+  const espacamentoX = 50;
+  const espacamentoY = 40;
+  const inicioX = 40;
+  const inicioY = 40;
+  
+  letras.forEach((letra, index) => {
+    const col = index % colunas;
+    const lin = Math.floor(index / colunas);
+    posicoes[letra] = {
+      x: inicioX + col * espacamentoX,
+      y: inicioY + lin * espacamentoY
+    };
+  });
+  
+  // Criar pontos de calor como divs com gradiente radial
+  Object.keys(poluicaoPorPonto).forEach(letra => {
+    const poluicao = poluicaoPorPonto[letra];
+    const pos = posicoes[letra];
+    
+    // Calcular intensidade (0 a 1)
+    const intensidade = maxPoluicao > 0 ? poluicao / maxPoluicao : 0;
+    
+    // Criar ponto de calor
+    const heatPoint = document.createElement('div');
+    heatPoint.className = 'heat-point-overlay';
+    heatPoint.style.width = `${20 + (intensidade * 30)}px`;
+    heatPoint.style.height = `${20 + (intensidade * 30)}px`;
+    heatPoint.style.left = `${pos.x}px`;
+    heatPoint.style.top = `${pos.y}px`;
+    
+    // Definir cor baseada na intensidade (usando o mesmo esquema do gradiente)
+    if (intensidade < 0.3) {
+      heatPoint.style.background = 'radial-gradient(circle, rgba(110, 231, 183, 0.6) 0%, transparent 70%)';
+    } else if (intensidade < 0.6) {
+      heatPoint.style.background = 'radial-gradient(circle, rgba(251, 191, 36, 0.6) 0%, transparent 70%)';
+    } else {
+      heatPoint.style.background = 'radial-gradient(circle, rgba(248, 113, 113, 0.6) 0%, transparent 70%)';
+    }
+    
+    heatPoint.setAttribute('data-ponto', letra);
+    heatPoint.setAttribute('data-intensidade', intensidade.toFixed(2));
+    heatPointsOverlay.appendChild(heatPoint);
+  });
+  
+  // Atualizar resultados
+  document.getElementById('resIndex').textContent = (maxPoluicao * 100).toFixed(1);
+  document.getElementById('resCH4').textContent = (maxPoluicao * 1000).toFixed(0) + ' t';
+  document.getElementById('resCO2').textContent = (maxPoluicao * 2500).toFixed(0) + ' t';
+}
+
+// Event listeners
+document.getElementById('btnCalcular').addEventListener('click', () => {
+  renderHeatMap();
+});
+
+document.getElementById('btnZerar').addEventListener('click', () => {
+  const heatPointsOverlay = document.getElementById('heatPointsOverlay');
+  heatPointsOverlay.innerHTML = '';
+  document.getElementById('resIndex').textContent = '0.0';
+  document.getElementById('resCH4').textContent = '0 t';
+  document.getElementById('resCO2').textContent = '0 t';
+});
+  
+// EXPORTAR O PAINEL -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+const btnExportar = document.getElementById('btnExportar');
+
+btnExportar.addEventListener('click', async () => {
+  // Seleciona o conteúdo principal completo (todas as seções)
+  const painel = document.querySelector('main');
+  
+  if (!painel) return;
+
+  // Opções para o html2canvas - aumentar a escala para melhor qualidade
+  const options = { 
+    scale: 2, 
+    backgroundColor: '#0b1220',
+    useCORS: true,
+    allowTaint: true,
+    logging: false
+  };
+
+  try {
+    // Captura a imagem do painel completo com background definido
+    const canvas = await html2canvas(painel, options);
+    const imgData = canvas.toDataURL('image/png');
+
+    // Cria PDF
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Calcula dimensões para caber no PDF
+    const imgWidth = 210; // Largura A4 em mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    // Adiciona a imagem ao PDF
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    
+    // Salva o PDF
+    pdf.save('relatorio_ecoleak.pdf');
+    
+  } catch (error) {
+    console.error('Erro ao exportar PDF:', error);
+    alert('Erro ao gerar o relatório PDF. Verifique o console para detalhes.');
+  }
+});
+
+// EXPORTAR ARQUIVO JSON  ----------------------------------------------------------------------------------------------------------------------------
+const btnCalcular = document.getElementById('btnCalcular');
+btnCalcular.addEventListener('click', () => {
+  if(equipamentos.length === 0){
+    alert('Nenhum equipamento adicionado.');
+    return;
+  }
+  // --- Exporta JSON automaticamente ---
+  const dataToExport = equipamentos.map(eq => ({
+    id: eq.id,
+    tipo: eq.tipo,
+    ponto: eq.ponto,
+    gas: eq.gas,
+    parametros: eq.params,   // Parâmetros operacionais
+    dimensoes: eq.dims      // Dimensões físicas
+  }));
+  const jsonStr = JSON.stringify(dataToExport, null, 2);
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'equipamentos.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+ // Envia JSON para o backend (INÍCIO) ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+document.getElementById('btnCalcular').addEventListener('click', async () => {
+  if(equipamentos.length === 0){
+    alert('Nenhum equipamento adicionado.');
+    return;
+  }
+
+  // Agrupa por tipo
+  const agrupados = {};
+  equipamentos.forEach(eq => {
+    if(!agrupados[eq.tipo]){
+      agrupados[eq.tipo] = [];
+    }
+    agrupados[eq.tipo].push({
+      id: eq.id,
+      nome: eq.nome,
+      ponto: eq.ponto,
+      gas: eq.gas,
+      params: eq.params,
+      dims: eq.dims
+    });
+  });
+
+  try {
+    const response = await fetch('http://127.0.0.1:5000/salvar-json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(agrupados)
+    });
+    const result = await response.json();
+    if(result.status === "ok"){
+      alert(result.msg);
+    } else {
+      alert("Erro: " + result.msg);
+    }
+  } catch (err) {
+    alert("Erro de conexão: " + err.message);
+  }
+
+  recebeDados();
+});
+
+ // Envia JSON para o backend (FIM) ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Recebe os dados do backend
+async function recebeDados(){
+    try {
+        const response = await fetch('http://127.0.0.1:5000/enviar-json', {
+            method: 'GET',
+            headers: { 
+                'Accept': 'application/json'
             }
         });
+        
+        // Verifique o content-type antes de fazer .json()
+        const contentType = response.headers.get('content-type');
+        
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Resposta não é JSON:', text.substring(0, 200));
+            alert('Servidor retornou HTML em vez de JSON. Verifique a rota.');
+            return;
+        }
+        
+        const result = await response.json();
 
-        document.getElementById('tipoEquipamento').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                enviarDados();
-            }
-        });
-    </script>
+        if(result.status === "ok"){
+            // alert(JSON.stringify(result.data));
+            atualizarInterface(result.data);
+        } else {
+            alert("Erro: " + result.msg);
+        }
+    } catch (err) {
+        alert("Erro de conexão: " + err.message);
+    }
+}
+  
+  
+</script>
 </body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9724884d9294d5e8',t:'MTc1NTcyMDYwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

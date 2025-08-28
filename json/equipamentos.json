@@ -4,10 +4,10 @@
       "id": 1,
       "nome": "A",
       "ponto": "A",
-      "gas": "56",
+      "gas": "90",
       "params": {
-        "Tempo de resposta": "A",
-        "Número de ciclos": "A"
+        "Tempo de resposta": "2",
+        "Número de ciclos": "2"
       },
       "dims": {
         "Diâmetro nominal": "A",

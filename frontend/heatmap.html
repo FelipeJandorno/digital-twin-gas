@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Calor Simples</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #2a4b8c);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #3e8e41;
+        }
+        
+        .heatmap-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #2c3e50;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        .heatmap {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .heat-point {
+            position: absolute;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s ease;
+        }
+        
+        .info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mapa de Calor Interativo</h1>
+    
+    <div class="container">
+        <div class="controls">
+            <button id="btnGerar">Gerar Novo Mapa</button>
+            <button id="btnLimpar">Limpar Mapa</button>
+        </div>
+        
+        <div class="heatmap-container">
+            <div id="heatmap" class="heatmap"></div>
+        </div>
+        
+        <div class="info">
+            <p>Clique no botão "Gerar Novo Mapa" para criar pontos de calor com intensidades aleatórias.</p>
+            <p>As cores variam de azul (baixa intensidade) para vermelho (alta intensidade).</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const heatmap = document.getElementById('heatmap');
+            const btnGerar = document.getElementById('btnGerar');
+            const btnLimpar = document.getElementById('btnLimpar');
+            
+            // Função para gerar um mapa de calor
+            function gerarMapaCalor() {
+                limparMapa();
+                
+                // Gerar entre 10 e 20 pontos aleatórios
+                const numPontos = Math.floor(Math.random() * 11) + 10;
+                
+                for (let i = 0; i < numPontos; i++) {
+                    // Posição aleatória
+                    const x = Math.random() * 100;
+                    const y = Math.random() * 100;
+                    
+                    // Intensidade aleatória (0 a 1)
+                    const intensidade = Math.random();
+                    
+                    // Tamanho baseado na intensidade
+                    const tamanho = 20 + (intensidade * 50);
+                    
+                    // Cor baseada na intensidade
+                    const r = Math.floor(intensidade * 255);
+                    const g = Math.floor((1 - intensidade) * 100);
+                    const b = Math.floor((1 - intensidade) * 150);
+                    const cor = `rgba(${r}, ${g}, ${b}, ${0.4 + intensidade * 0.4})`;
+                    
+                    // Criar ponto de calor
+                    const ponto = document.createElement('div');
+                    ponto.className = 'heat-point';
+                    ponto.style.left = `${x}%`;
+                    ponto.style.top = `${y}%`;
+                    ponto.style.width = `${tamanho}px`;
+                    ponto.style.height = `${tamanho}px`;
+                    ponto.style.background = `radial-gradient(circle, ${cor}, transparent 70%)`;
+                    ponto.style.boxShadow = `0 0 15px ${cor}`;
+                    
+                    // Adicionar tooltip com informação de intensidade
+                    ponto.title = `Intensidade: ${intensidade.toFixed(2)}`;
+                    
+                    heatmap.appendChild(ponto);
+                }
+            }
+            
+            // Função para limpar o mapa
+            function limparMapa() {
+                while (heatmap.firstChild) {
+                    heatmap.removeChild(heatmap.firstChild);
+                }
+            }
+            
+            // Event listeners para os botões
+            btnGerar.addEventListener('click', gerarMapaCalor);
+            btnLimpar.addEventListener('click', limparMapa);
+            
+            // Gerar um mapa inicial
+            gerarMapaCalor();
+        });
+    </script>
+</body>
+</html>
