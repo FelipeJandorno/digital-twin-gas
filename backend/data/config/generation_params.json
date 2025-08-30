@@ -7,9 +7,9 @@
   },
   "leak_patterns": {
     "probability": 0.05,
-    "pressure_drop": 0.3,
+    "pressure_drop": 10,
     "vibration_increase": 1.5,
-    "flow_reduction": 0.2,
+    "flow_reduction": 100,
     "effect_duration": 5
   },
   "compressor_params": {
